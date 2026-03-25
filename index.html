@@ -5,2036 +5,946 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SLOP - The AI Blog Writing Simulator</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg: #0d0a14;
-  --surface: #15101e;
-  --card: #1e1630;
-  --purple: #9b59b6;
-  --pink: #e74c8c;
-  --cyan: #00d4ff;
-  --green: #2ecc71;
-  --red: #e74c3c;
-  --orange: #f39c12;
-  --yellow: #f1c40f;
-  --text: #e8e0f0;
-  --muted: #7a6a8a;
-  --linkedin: #0a66c2;
-}
-
+* { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  background: #0a0612;
+  color: #e0e0e0;
+  font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
   overflow: hidden;
   height: 100vh;
   width: 100vw;
   user-select: none;
 }
-
-#game-canvas {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-}
-
-/* ---- HUD ---- */
-#hud {
-  position: fixed; top: 0; left: 0; right: 0;
-  padding: 10px 20px;
-  display: flex; justify-content: space-between; align-items: flex-start;
-  pointer-events: none; z-index: 10;
-}
-.hud-left, .hud-right { display: flex; flex-direction: column; gap: 4px; }
-.hud-center { text-align: center; }
-#title {
-  font-size: 1.8rem; font-weight: 900; letter-spacing: 0.2em;
-  background: linear-gradient(135deg, var(--purple), var(--pink), var(--cyan));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-#subtitle { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.08em; }
-.stat { font-size: 0.75rem; color: var(--muted); }
-.stat strong { color: var(--text); font-size: 0.95rem; }
-#timer-display { font-size: 1.4rem; font-weight: 900; color: var(--cyan); }
-#timer-display.warn { color: var(--yellow); }
-#timer-display.danger { color: var(--red); animation: pulse 0.5s ease infinite; }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-
-/* ---- SLAP Detector ---- */
-#slap-panel {
-  position: fixed; top: 10px; right: 20px;
-  width: 190px; z-index: 10; pointer-events: none;
-  background: rgba(14,10,20,0.7); border: 1px solid #2a1f3a;
-  border-radius: 8px; padding: 8px 10px;
-}
-#slap-face { font-size: 1.6rem; text-align: center; }
-#slap-title { font-size: 0.6rem; color: var(--muted); text-align: center; letter-spacing: 0.1em; margin: 2px 0; }
-#slap-bar { height: 10px; background: #0d0a14; border: 1px solid #2a1f3a; border-radius: 5px; overflow: hidden; }
-#slap-fill { height: 100%; width: 0%; border-radius: 5px; transition: width 0.4s, background 0.4s; background: var(--green); }
-#slap-verdict { font-size: 0.7rem; text-align: center; margin-top: 3px; font-weight: 700; min-height: 1em; }
-
-/* ---- Audience Counter ---- */
-#audience-panel {
-  position: fixed; top: 120px; right: 20px;
-  z-index: 10; pointer-events: none;
-  font-size: 0.75rem; color: var(--muted);
-  background: rgba(14,10,20,0.5); border: 1px solid #2a1f3a;
-  border-radius: 6px; padding: 5px 10px; min-width: 120px; text-align: center;
-}
-#audience-count { font-weight: 700; color: var(--cyan); font-size: 0.9rem; }
-#audience-sub { font-size: 0.6rem; color: var(--pink); min-height: 0.8em; }
-
-/* ---- Typed output ---- */
-#typed-wrap {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: rgba(13,10,20,0.92); border-top: 1px solid #2a1f3a;
-  padding: 8px 20px 10px; z-index: 10; pointer-events: none;
-}
-#typed-label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 3px; }
-#typed-output {
-  font-family: "Courier New", Courier, monospace; font-size: 1rem;
-  color: var(--cyan); min-height: 1.4em; white-space: pre-wrap; word-break: break-all;
+#game-container {
+  width: 100vw;
+  height: 100vh;
   position: relative;
 }
-#typed-output .slop { color: var(--red); text-decoration: wavy underline; text-decoration-color: var(--red); }
-#autocomplete-ghost {
-  color: var(--muted); opacity: 0.4; font-style: italic;
-}
-#gremlin-face {
-  position: fixed; bottom: 48px; right: 30px;
-  font-size: 1.5rem; opacity: 0; transition: opacity 0.3s;
-  z-index: 11; pointer-events: none;
-}
 
-/* ---- Commentary ---- */
-#commentary-container {
-  position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
-  z-index: 15; pointer-events: none; text-align: center; width: 600px; max-width: 80vw;
-}
-.commentary-msg {
-  font-size: 0.95rem; font-weight: 600; padding: 6px 16px;
-  border-radius: 6px; margin-bottom: 6px;
-  background: rgba(30,22,48,0.85); border: 1px solid #3a2a5a;
-  animation: commentFade 4s ease forwards;
-  color: var(--text);
-}
-@keyframes commentFade {
-  0% { opacity: 0; transform: translateY(10px); }
-  10% { opacity: 1; transform: translateY(0); }
-  75% { opacity: 1; transform: translateY(-5px); }
-  100% { opacity: 0; transform: translateY(-20px); }
-}
-
-/* ---- Combo Display ---- */
-.combo-display {
-  position: fixed; top: 38%; left: 50%; transform: translate(-50%,-50%) scale(0);
-  font-size: 2.2rem; font-weight: 900; text-align: center;
-  pointer-events: none; z-index: 20;
-  text-shadow: 0 0 40px rgba(231,76,140,0.6);
-  animation: comboPop 1.5s ease forwards;
-}
-.combo-display .combo-label { font-size: 1.2rem; display: block; margin-top: 4px; }
-@keyframes comboPop {
-  0% { transform: translate(-50%,-50%) scale(0) rotate(-5deg); opacity: 0; }
-  15% { transform: translate(-50%,-50%) scale(1.4) rotate(3deg); opacity: 1; }
-  30% { transform: translate(-50%,-50%) scale(1) rotate(0deg); }
-  80% { opacity: 1; }
-  100% { transform: translate(-50%,-50%) scale(0.8) rotate(-2deg); opacity: 0; }
-}
-
-/* ---- Margin Notes ---- */
-#margin-notes {
-  position: fixed; top: 170px; right: 0; bottom: 80px; width: 150px;
-  z-index: 10; pointer-events: none; overflow: hidden;
-}
-.margin-note {
-  position: absolute; right: 5px;
-  font-family: "Segoe Script", "Comic Sans MS", "Bradley Hand", cursive;
-  font-size: 0.7rem; color: var(--red); padding: 2px 6px;
-  animation: noteFade 12s ease forwards;
-  white-space: nowrap;
-}
-@keyframes noteFade {
-  0% { opacity: 0; transform: translateX(20px); }
-  8% { opacity: 0.9; transform: translateX(0); }
-  80% { opacity: 0.9; }
-  100% { opacity: 0; }
-}
-
-/* ---- Controls hint ---- */
-#controls-hint {
-  position: fixed; bottom: 52px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 20px; z-index: 10; pointer-events: none;
-}
-.key-hint { text-align: center; }
-.key-letter {
-  display: inline-block; width: 34px; height: 34px; line-height: 34px; text-align: center;
-  background: var(--card); border: 2px solid #3a2a5a; border-radius: 5px;
-  font-size: 1rem; font-weight: 900; color: var(--purple); transition: all 0.08s;
-  font-family: monospace;
-}
-.key-letter.pressed { background: var(--purple); color: #fff; border-color: var(--pink); transform: scale(0.9); }
-.key-desc { font-size: 0.55rem; color: var(--muted); margin-top: 2px; }
-
-/* ---- Layoff Notification ---- */
-#layoff-notif {
-  position: fixed; top: 50%; right: -400px; transform: translateY(-50%);
-  width: 340px; background: #1c1428; border: 1px solid #3a2a5a; border-radius: 8px;
-  padding: 16px 20px; z-index: 25; transition: right 0.6s cubic-bezier(0.2,0.8,0.3,1);
-  font-size: 0.8rem; line-height: 1.5;
-}
-#layoff-notif.visible { right: 20px; }
-#layoff-notif .notif-title { font-weight: 700; font-size: 0.9rem; color: var(--orange); margin-bottom: 6px; }
-
-/* ---- BPM Counter ---- */
-#bpm-counter {
-  position: fixed; bottom: 52px; right: 20px;
-  font-size: 0.7rem; color: var(--red); font-weight: 700;
-  z-index: 11; pointer-events: none; opacity: 0; transition: opacity 0.3s;
-  font-family: monospace;
-}
-
-/* ---- LinkedIn Overlay ---- */
-#linkedin-overlay {
-  position: fixed; inset: 0; background: rgba(10,102,194,0.12);
-  pointer-events: none; z-index: 5; opacity: 0; transition: opacity 1s;
-}
-
-/* ---- Slop Alert ---- */
-.slop-alert {
-  position: fixed; top: 50%; left: 50%;
-  transform: translate(-50%,-50%) scale(0);
-  font-size: 1.6rem; font-weight: 900; color: var(--red); text-align: center;
-  pointer-events: none; z-index: 20;
-  animation: slopPop 1.2s ease forwards;
-  text-shadow: 0 0 30px rgba(231,76,60,0.5);
-}
-@keyframes slopPop {
-  0% { transform: translate(-50%,-50%) scale(0); opacity: 0; }
-  20% { transform: translate(-50%,-50%) scale(1.3); opacity: 1; }
-  40% { transform: translate(-50%,-50%) scale(1); }
-  100% { transform: translate(-50%,-50%) scale(1); opacity: 0; }
-}
-
-/* ---- Tumbleweed ---- */
-.tumbleweed {
-  position: fixed; bottom: 52px; font-size: 1rem;
-  animation: tumble 3s linear forwards;
-  pointer-events: none; z-index: 12;
-}
-@keyframes tumble {
-  0% { left: -30px; transform: rotate(0deg); opacity: 1; }
-  100% { left: 110vw; transform: rotate(720deg); opacity: 0.3; }
-}
-
-/* ---- Start Screen ---- */
+/* ===== START SCREEN ===== */
 #start-screen {
-  position: fixed; inset: 0; background: rgba(13,10,20,0.88);
-  display: flex; flex-direction: column; justify-content: center; align-items: center;
-  z-index: 100; gap: 16px;
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #0a0612;
 }
 #start-screen h1 {
-  font-size: 6rem; font-weight: 900; letter-spacing: 0.35em;
-  background: linear-gradient(135deg, var(--purple), var(--pink), var(--cyan));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  font-size: clamp(60px, 12vw, 140px);
+  font-weight: 900;
+  letter-spacing: 0.3em;
+  background: linear-gradient(135deg, #a855f7, #ec4899, #06b6d4, #f97316);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+  animation: titlePulse 2s ease-in-out infinite;
+}
+@keyframes titlePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+#start-screen .subtitle {
+  font-size: clamp(14px, 2vw, 20px);
+  color: #888;
+  margin-bottom: 6px;
 }
 #start-screen .tagline {
-  font-size: 1rem; color: var(--muted); max-width: 480px;
-  text-align: center; line-height: 1.6;
+  font-size: clamp(11px, 1.5vw, 15px);
+  color: #666;
+  font-style: italic;
+  margin-bottom: 40px;
 }
-.start-controls, .tutorial-box-placeholder {
-  display: flex; gap: 20px; margin: 8px 0;
+.lane-legend {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 0 20px;
 }
-.tutorial-box {
-  display: flex; gap: 0; margin: 16px 0 10px; background: rgba(30,22,48,0.7);
-  border: 1px solid #3a2a5a; border-radius: 10px; overflow: hidden; max-width: 500px;
+.lane-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: clamp(11px, 1.3vw, 14px);
 }
-.tutorial-section { flex: 1; padding: 14px 18px; text-align: center; }
-.tutorial-divider { width: 1px; background: #3a2a5a; }
-.tutorial-label { font-size: 0.65rem; letter-spacing: 0.15em; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; }
-.tutorial-keys { display: flex; gap: 12px; justify-content: center; margin-bottom: 6px; }
-.tutorial-keys .key-letter { width: 48px; height: 48px; line-height: 48px; }
-.tutorial-keys .key-desc { font-size: 0.6rem; }
-.tutorial-tip { font-size: 0.7rem; color: var(--cyan); font-style: italic; }
-.how-it-works {
-  max-width: 440px; text-align: center; font-size: 0.8rem; color: var(--muted);
-  line-height: 1.6; margin: 10px 0;
+.key-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 16px;
+  color: #fff;
 }
-.how-it-works p { margin-bottom: 8px; }
-.how-it-works strong { color: var(--text); }
-.try-hint {
-  font-size: 0.7rem; color: var(--purple); margin-top: 8px;
-  animation: pulse 1.5s ease infinite;
+.lane-legend-item:nth-child(1) .key-badge { background: #a855f7; }
+.lane-legend-item:nth-child(2) .key-badge { background: #ec4899; }
+.lane-legend-item:nth-child(3) .key-badge { background: #06b6d4; }
+.lane-legend-item:nth-child(4) .key-badge { background: #f97316; }
+.start-prompt {
+  font-size: clamp(14px, 2vw, 18px);
+  color: #a855f7;
+  animation: blink 1.2s ease-in-out infinite;
 }
-.start-controls .key-letter { width: 48px; height: 48px; line-height: 48px; font-size: 1.4rem; }
-.start-controls .key-desc { font-size: 0.6rem; }
-.how-to { font-size: 0.75rem; color: var(--muted); max-width: 400px; text-align: center; line-height: 1.5; }
-.start-btn {
-  margin-top: 12px; padding: 14px 50px; font-size: 1.1rem; font-weight: 700;
-  background: linear-gradient(135deg, var(--purple), var(--pink));
-  color: #fff; border: none; border-radius: 8px; cursor: pointer;
-  letter-spacing: 0.12em; transition: transform 0.15s, box-shadow 0.15s;
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
-.start-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(155,89,182,0.4); }
 
-/* ---- Game Over Screen ---- */
-#game-over {
-  position: fixed; inset: 0; background: rgba(13,10,20,0.96);
-  display: none; flex-direction: column; align-items: center;
-  z-index: 100; overflow-y: auto; padding: 30px 20px;
+/* ===== GAMEOVER ===== */
+#gameover-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  background: #0a0612;
+  overflow-y: auto;
+  padding: 30px 20px;
 }
-#game-over .peer-review {
-  max-width: 560px; width: 100%; text-align: center;
+#gameover-screen h2 {
+  font-size: clamp(28px, 5vw, 48px);
+  font-weight: 900;
+  margin-bottom: 10px;
+  color: #a855f7;
 }
-#game-over .review-header {
-  font-size: 0.7rem; color: var(--muted); letter-spacing: 0.15em;
-  text-transform: uppercase; margin-bottom: 6px;
+.go-grade {
+  font-size: clamp(48px, 8vw, 80px);
+  font-weight: 900;
+  margin-bottom: 4px;
 }
-#game-over .grade-letter {
-  font-size: 5rem; font-weight: 900; line-height: 1;
+.go-grade-label {
+  font-size: clamp(12px, 1.6vw, 16px);
+  color: #888;
+  margin-bottom: 20px;
+  text-align: center;
 }
-#game-over .grade-desc {
-  font-size: 1rem; color: var(--muted); margin: 4px 0 16px; font-style: italic;
+.go-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  max-width: 600px;
+  width: 100%;
+  margin-bottom: 20px;
 }
-#game-over .review-body {
-  font-size: 0.8rem; color: var(--text); text-align: left; line-height: 1.7;
-  background: var(--card); padding: 16px; border-radius: 8px;
-  border: 1px solid #2a1f3a; margin-bottom: 20px;
+.go-stat {
+  background: #1a1025;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
 }
-#game-over .review-body .stat-line { margin: 2px 0; }
+.go-stat .val { font-size: 22px; font-weight: 900; }
+.go-stat .lbl { font-size: 10px; color: #888; margin-top: 2px; }
+.go-blog {
+  max-width: 600px;
+  width: 100%;
+  background: #faf9f7;
+  color: #222;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 20px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.go-blog .medium-hdr { text-align: center; color: #888; font-size: 11px; margin-bottom: 8px; font-family: inherit; }
+.go-blog .author { text-align: center; margin-bottom: 14px; font-size: 12px; color: #666; }
+.go-blog .claps { text-align: center; margin-top: 14px; font-size: 13px; color: #999; }
+.go-blog .c-correct { color: #222; }
+.go-blog .c-wrong { color: #e11d48; text-decoration: underline wavy #e11d48; }
+.go-blog .c-slop { color: #e11d48; font-weight: 700; text-decoration: underline wavy #e11d48; font-style: italic; }
+.go-commentary {
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+  font-size: clamp(13px, 1.6vw, 16px);
+  color: #ec4899;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+.go-btn {
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  color: #fff;
+  border: none;
+  padding: 14px 40px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+  transition: transform 0.1s;
+}
+.go-btn:hover { transform: scale(1.05); }
+.go-btn:active { transform: scale(0.97); }
+.go-hs { font-size: 12px; color: #666; margin-bottom: 30px; }
 
-/* Medium Preview */
-.medium-preview {
-  max-width: 520px; width: 100%;
-  background: #fafafa; color: #222; border-radius: 8px;
-  padding: 24px 28px; text-align: left; margin-bottom: 20px;
+/* ===== GAMEPLAY ===== */
+#gameplay {
+  display: none;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
 }
-.medium-preview .medium-bar { height: 3px; background: var(--green); border-radius: 2px; margin-bottom: 16px; width: 30%; }
-.medium-preview .medium-author-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.medium-preview .medium-avatar { font-size: 1.8rem; }
-.medium-preview .medium-author-name { font-size: 0.85rem; font-weight: 600; color: #222; }
-.medium-preview .medium-meta { font-size: 0.7rem; color: #888; }
-.medium-preview .medium-badge { font-size: 0.6rem; background: #ffc017; color: #222; padding: 1px 6px; border-radius: 3px; font-weight: 600; margin-left: 6px; }
-.medium-preview .medium-title {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.3rem; font-weight: 700; color: #111; margin-bottom: 10px; line-height: 1.3;
+#top-area {
+  height: 120px;
+  min-height: 90px;
+  padding: 8px 16px;
+  display: flex;
+  gap: 12px;
+  background: #0a0612;
+  border-bottom: 1px solid #1a1025;
+  z-index: 10;
+  position: relative;
 }
-.medium-preview .medium-body {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 0.9rem; color: #444; line-height: 1.7; margin-bottom: 14px;
-  max-height: 100px; overflow-y: auto; word-break: break-all;
+#blog-area { flex: 1; overflow: hidden; }
+#target-sentence {
+  font-size: 12px;
+  color: #444;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.medium-preview .medium-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ddd; padding-top: 10px; }
-.medium-preview .medium-claps { font-size: 0.85rem; color: #666; }
-.linkedin-btn {
-  padding: 6px 14px; font-size: 0.75rem; font-weight: 600;
-  background: var(--linkedin); color: #fff; border: none; border-radius: 4px;
-  cursor: pointer; transition: opacity 0.2s;
+#blog-output {
+  font-size: 14px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  overflow: hidden;
+  max-height: 72px;
 }
-.linkedin-btn:hover { opacity: 0.8; }
-.linkedin-btn:active::after { content: " (why would you)"; font-weight: 400; font-size: 0.6rem; }
+#blog-output .c { color: #06b6d4; }
+#blog-output .w { color: #e11d48; }
+#blog-output .sl { color: #f97316; font-weight: 700; text-decoration: underline wavy #f97316; }
+#blog-output .cur {
+  display: inline-block; width: 2px; height: 14px;
+  background: #06b6d4; margin-left: 1px;
+  animation: blink 0.6s ease-in-out infinite;
+  vertical-align: text-bottom;
+}
+#hud-area {
+  width: 170px;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+#hud-score {
+  font-size: clamp(20px, 3vw, 30px);
+  font-weight: 900;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+#hud-combo { font-size: 15px; font-weight: 700; color: #f97316; min-height: 20px; transition: transform 0.1s; }
+#hud-timer { font-size: 14px; color: #888; }
+#hud-accuracy { font-size: 12px; color: #666; }
+#hud-counts { font-size: 11px; color: #555; text-align: right; }
 
-.go-again-row { display: flex; gap: 16px; align-items: center; margin-top: 10px; margin-bottom: 30px; }
-
-#game-over .situational { font-style: italic; color: var(--pink); margin-top: 10px; }
-
-@media (max-width: 600px) {
-  #start-screen h1 { font-size: 3.5rem; }
-  #title { font-size: 1.2rem; }
-  .medium-preview { padding: 14px; }
+/* Lane area */
+#lane-area { flex: 1; position: relative; display: flex; overflow: hidden; }
+#lane-canvas { display: block; }
+#slap-sidebar {
+  width: 130px;
+  min-width: 110px;
+  background: #0d0818;
+  border-left: 1px solid #1a1025;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
 }
+#slap-label { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; color: #a855f7; }
+#slap-face { font-size: 34px; transition: transform 0.2s; }
+#slap-meter-wrap { width: 100%; height: 10px; background: #1a1025; border-radius: 5px; overflow: hidden; }
+#slap-meter { height: 100%; width: 0%; background: linear-gradient(90deg, #22c55e, #eab308, #e11d48); border-radius: 5px; transition: width 0.3s; }
+#slap-notes { font-size: 10px; color: #e11d48; text-align: center; min-height: 40px; overflow: hidden; }
+
+/* Overlays */
+#commentary {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(13px, 1.8vw, 17px);
+  color: #ec4899;
+  font-style: italic;
+  text-align: center;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.3s;
+  max-width: 500px;
+  text-shadow: 0 0 20px rgba(236, 72, 153, 0.5);
+}
+#flash-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.hit-fb {
+  position: absolute;
+  font-weight: 900;
+  font-size: 15px;
+  pointer-events: none;
+  z-index: 20;
+  animation: floatUp 0.7s ease-out forwards;
+}
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-40px) scale(0.8); }
+}
+.notify {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: 900;
+  pointer-events: none;
+  z-index: 25;
+  opacity: 0;
+}
+#speed-notify { font-size: 28px; color: #f97316; text-shadow: 0 0 30px rgba(249, 115, 22, 0.6); }
+#next-notify { font-size: 22px; color: #06b6d4; text-shadow: 0 0 30px rgba(6, 182, 212, 0.6); top: 40%; }
+
+#lane-keys {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  display: flex;
+  z-index: 12;
+  pointer-events: none;
+}
+.lk {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 900;
+  opacity: 0.25;
+  transition: opacity 0.08s, transform 0.08s;
+}
+.lk.on { opacity: 1; transform: scale(1.2); }
+.lk-0 { color: #a855f7; }
+.lk-1 { color: #ec4899; }
+.lk-2 { color: #06b6d4; }
+.lk-3 { color: #f97316; }
 </style>
 </head>
 <body>
+<div id="game-container">
 
-<!-- ======== START SCREEN ======== -->
-<div id="start-screen">
-  <h1>SLOP</h1>
-  <p class="tagline">You're an AI trying to write a blog post.<br>
-  You have two floppy ragdoll arms dangling over a keyboard.<br>
-  Try to type something coherent. You won't.</p>
-
-  <div class="tutorial-box">
-    <div class="tutorial-section">
-      <div class="tutorial-label">LEFT HAND</div>
-      <div class="tutorial-keys">
-        <div class="key-hint"><div class="key-letter" style="font-size:1.6rem">S</div><div class="key-desc">swing left arm UP</div></div>
-        <div class="key-hint"><div class="key-letter" style="font-size:1.6rem">L</div><div class="key-desc">swing left arm DOWN</div></div>
-      </div>
-      <div class="tutorial-tip">Alternate S-L rapidly to sweep across keys</div>
+  <div id="start-screen">
+    <h1>SLOP</h1>
+    <div class="subtitle">The AI Blog Writing Simulator</div>
+    <div class="tagline">Guitar Hero, but you're writing the worst blog post ever.</div>
+    <div class="lane-legend">
+      <div class="lane-legend-item"><div class="key-badge">S</div> Left keys (QWERTASDFGZXCV)</div>
+      <div class="lane-legend-item"><div class="key-badge">L</div> Right keys (YUIHJKBNM)</div>
+      <div class="lane-legend-item"><div class="key-badge">O</div> Space &amp; punctuation</div>
+      <div class="lane-legend-item"><div class="key-badge">P</div> DODGE THE SLOP</div>
     </div>
-    <div class="tutorial-divider"></div>
-    <div class="tutorial-section">
-      <div class="tutorial-label">RIGHT HAND</div>
-      <div class="tutorial-keys">
-        <div class="key-hint"><div class="key-letter" style="font-size:1.6rem">O</div><div class="key-desc">swing right arm UP</div></div>
-        <div class="key-hint"><div class="key-letter" style="font-size:1.6rem">P</div><div class="key-desc">swing right arm DOWN</div></div>
+    <div class="start-prompt">Press any key to start</div>
+  </div>
+
+  <div id="gameover-screen">
+    <h2>GAME OVER</h2>
+    <div class="go-grade" id="go-grade"></div>
+    <div class="go-grade-label" id="go-grade-label"></div>
+    <div class="go-stats" id="go-stats"></div>
+    <div class="go-commentary" id="go-commentary"></div>
+    <div class="go-blog" id="go-blog"></div>
+    <button class="go-btn" id="go-btn">SLOP AGAIN</button>
+    <div class="go-hs" id="go-hs"></div>
+  </div>
+
+  <div id="gameplay">
+    <div id="top-area">
+      <div id="blog-area">
+        <div id="target-sentence"></div>
+        <div id="blog-output"></div>
       </div>
-      <div class="tutorial-tip">Alternate O-P rapidly to sweep across keys</div>
+      <div id="hud-area">
+        <div id="hud-score">0</div>
+        <div id="hud-combo"></div>
+        <div id="hud-timer">60.0s</div>
+        <div id="hud-accuracy">100%</div>
+        <div id="hud-counts"></div>
+      </div>
     </div>
+    <div id="lane-area">
+      <canvas id="lane-canvas"></canvas>
+      <div id="slap-sidebar">
+        <div id="slap-label">S.L.A.P.</div>
+        <div id="slap-face">&#x1F610;</div>
+        <div id="slap-meter-wrap"><div id="slap-meter"></div></div>
+        <div id="slap-notes"></div>
+      </div>
+      <div id="lane-keys"></div>
+    </div>
+    <div id="commentary"></div>
+    <div id="flash-overlay"></div>
+    <div id="speed-notify" class="notify">SPEED UP!</div>
+    <div id="next-notify" class="notify">NEXT SENTENCE</div>
   </div>
 
-  <div class="how-it-works">
-    <p><strong>How it works:</strong> Two ragdoll arms dangle above a keyboard. When a fingertip smacks a key, that letter gets typed into your "blog post." Mash S-L to swing the left arm. Mash O-P to swing the right arm. When the arms hit keys, you'll hear a beep and see sparks.</p>
-    <p>The <strong>S.L.A.P. detector</strong> (Semantic Laziness And Posturing) watches everything you type. If you accidentally produce AI buzzwords like "synergy" or "leverage," it roasts you. 60 seconds. Go.</p>
-  </div>
-
-  <button class="start-btn" id="start-btn">START SLOPPING</button>
-  <div class="try-hint" id="try-hint">Or just start mashing S-L-O-P right now to see the arms move ^</div>
 </div>
-
-<!-- ======== GAME OVER SCREEN ======== -->
-<div id="game-over">
-  <div class="peer-review">
-    <div class="review-header">PEER REVIEW -- DECISION</div>
-    <div class="grade-letter" id="grade-letter">F</div>
-    <div class="grade-desc" id="grade-desc"></div>
-    <div class="review-body" id="review-body"></div>
-  </div>
-  <div class="medium-preview" id="medium-preview"></div>
-  <div class="go-again-row">
-    <button class="linkedin-btn" id="linkedin-share-btn">Share on LinkedIn</button>
-    <button class="start-btn" id="restart-btn">SLOP AGAIN</button>
-  </div>
-</div>
-
-<!-- ======== CANVAS ======== -->
-<canvas id="game-canvas"></canvas>
-
-<!-- ======== HUD ======== -->
-<div id="hud" style="display:none;">
-  <div class="hud-left">
-    <div class="stat">Keys: <strong id="keys-hit">0</strong></div>
-    <div class="stat">Words: <strong id="word-count">0</strong></div>
-    <div class="stat">Slop: <strong id="slop-count">0</strong></div>
-  </div>
-  <div class="hud-center">
-    <div id="title">SLOP</div>
-    <div id="subtitle">THE AI BLOG WRITING SIMULATOR</div>
-    <div id="timer-display">60</div>
-  </div>
-  <div class="hud-right">
-    <div class="stat" style="text-align:right">Best: <strong id="high-score">0</strong></div>
-  </div>
-</div>
-
-<!-- ======== SLAP Panel ======== -->
-<div id="slap-panel" style="display:none;">
-  <div id="slap-face">&#x1F610;</div>
-  <div id="slap-title">S.L.A.P. DETECTOR</div>
-  <div id="slap-bar"><div id="slap-fill"></div></div>
-  <div id="slap-verdict"></div>
-</div>
-
-<!-- ======== Audience Counter ======== -->
-<div id="audience-panel" style="display:none;">
-  LIVE READERS: <span id="audience-count">1</span>
-  <div id="audience-sub"></div>
-</div>
-
-<!-- ======== Typed Output ======== -->
-<div id="typed-wrap" style="display:none;">
-  <div id="typed-label">YOUR MASTERPIECE</div>
-  <div id="typed-output"><span id="typed-text"></span><span id="autocomplete-ghost"></span></div>
-</div>
-<div id="gremlin-face">&#x1F47A;</div>
-
-<!-- ======== Controls Hint ======== -->
-<div id="controls-hint" style="display:none;">
-  <div class="key-hint"><div class="key-letter" id="key-s">S</div><div class="key-desc">L.up</div></div>
-  <div class="key-hint"><div class="key-letter" id="key-l">L</div><div class="key-desc">L.dn</div></div>
-  <div class="key-hint"><div class="key-letter" id="key-o">O</div><div class="key-desc">R.up</div></div>
-  <div class="key-hint"><div class="key-letter" id="key-p">P</div><div class="key-desc">R.dn</div></div>
-</div>
-
-<!-- ======== Commentary ======== -->
-<div id="commentary-container"></div>
-
-<!-- ======== Margin Notes ======== -->
-<div id="margin-notes"></div>
-
-<!-- ======== Layoff Notification ======== -->
-<div id="layoff-notif">
-  <div class="notif-title" id="layoff-title"></div>
-  <div id="layoff-body"></div>
-</div>
-
-<!-- ======== BPM Counter ======== -->
-<div id="bpm-counter"></div>
-
-<!-- ======== LinkedIn Overlay ======== -->
-<div id="linkedin-overlay"></div>
 
 <script>
 (function() {
 "use strict";
 
-// ================================================================
-// CONSTANTS
-// ================================================================
+// ---- DATA ----
+var SENTENCES = [
+  "open source is good and we should fund it more",
+  "hello world this is my first blog post please clap",
+  "i am definitely a human writing this and not a robot",
+  "the code works on my machine and that is good enough",
+  "git push force to main on friday what could go wrong",
+  "i deleted the production database but it was an accident",
+  "my pull request has been open for three months please review",
+  "the meeting could have been an email but here we are"
+];
 
 var SLOP_WORDS = [
-  "delve","tapestry","landscape","paradigm","synergy","ecosystem",
-  "leverage","robust","streamline","harness","utilize","certainly",
-  "arguably","remarkably","fundamentally","quietly","notably",
-  "importantly","interestingly","furthermore","moreover","hence",
-  "therefore","thus","comprehensive","innovative","transformative",
-  "revolutionize","empower","foster","facilitate","enhance",
-  "optimize","unprecedented","impactful","actionable","scalable",
-  "holistic","reimagine","disruptive","stakeholder"
+  "SYNERGY","LEVERAGE","PARADIGM","DISRUPT","HOLISTIC","AGILE","BANDWIDTH",
+  "SCALABLE","DEEP DIVE","CIRCLE BACK","IDEATE","UNPACK","PIPELINE",
+  "PIVOT","NORTH STAR","STAKEHOLDER","ALIGNMENT","GRANULAR",
+  "MOVE THE NEEDLE","THOUGHT LEADER","LOW-HANGING FRUIT","GAME CHANGER","VALUE ADD"
 ];
 
-var SLOP_PHRASES = [
-  "at the end of the day","going forward","moving forward",
-  "circle back","touch base","move the needle","deep dive",
-  "low-hanging fruit","thought leader","best in class",
-  "game changer","in terms of"
+var SLAP_NOTES = [
+  "Margin note: 'no.'",
+  "Margin note: 'DELETE THIS'",
+  "Margin note: 'were you held at gunpoint?'",
+  "Margin note: 'this triggers my fight or flight'",
+  "Margin note: 'I'm calling HR'",
+  "Margin note: 'peer review: rejected with prejudice'",
+  "Margin note: 'detected: crimes against prose'",
+  "Margin note: 'flagged by the Geneva Convention'"
 ];
 
-var REAL_WORDS = [
-  "the","a","an","i","is","it","in","to","of","and","or","for","on","at","by",
-  "up","no","do","go","so","if","my","we","us","he","me","be","as","am","are",
-  "was","has","had","not","but","all","can","her","his","its","our","out","you",
-  "who","how","now","new","old","big","one","two","get","let","say","see","use",
-  "way","day","man","did","got","put","run","set","try","ask","own","end","open",
-  "code","good","great","hello","world","this","that","with","from","have","been",
-  "will","your","they","what","when","make","like","time","just","know","take",
-  "come","could","than","look","only","into","most","some","very","after","also",
-  "back","work","first","even","give","over","such","here","fine","blog","post",
-  "write","read","data","team","tool","help","need","want","think","keep","move",
-  "call","long","hand","high","line","part","last","next","head","show","turn",
-  "more","real","test","sure","done","used","free","plan","hard","each","best",
-  "both","life","feel","fact","kind","must","word","home","left","late","much",
-  "love","care","ship","bug","cat","dog","fix","key","art","top","hot","cut",
-  "bit","add","pay","win","sit","hit","map","war","yes","four","five","stop",
-  "send","hope","wait","hold","fear","rest","risk","deal","live","idea","talk",
-  "pull","push","drop","pick","mark","pass","fail","meet","book","food","body",
-  "wall","door","game","case","tell","name","year","city","area","play","lost",
-  "dark","wide","fast","sign","self","full","miss","true","safe","folk","born",
-  "step","rule","rate","sell","note","card","join","stay","near","fall"
-];
-var REAL_SET = {};
-for (var rr = 0; rr < REAL_WORDS.length; rr++) REAL_SET[REAL_WORDS[rr]] = 1;
+var S_SET = {}; "qwertasdfgzxcv".split("").forEach(function(c){S_SET[c]=1;});
+var L_SET = {}; "yuihjkbnml".split("").forEach(function(c){L_SET[c]=1;});
+var O_SET = {}; [" ",".",",","'","!","?"].forEach(function(c){O_SET[c]=1;});
 
-// Commentary pools
-var COMM = {
-  firstKey: [
-    "It begins. The world's worst blog post is being born.",
-    "Congrats, you're now a content creator. I'm so sorry.",
-    "One keystroke closer to a thought leadership thread."
-  ],
-  gibberish: [
-    "This reads like a startup pitch hit by a ceiling fan.",
-    "Bold choice. Post-structural.",
-    "This is either modern poetry or a JIRA ticket.",
-    "Your SEO score is NaN.",
-    "Pure-keyboard-noise-as-a-service.",
-    "I think that's Swedish for 'Series A'."
-  ],
-  realWord: [
-    "Wait. That's a word. Everyone stay calm.",
-    "WORD DETECTED. The blog post is now 0.3% coherent. Career best.",
-    "An actual word?? In THIS economy?!",
-    "Accidental coherence detected. Investigating.",
-    "Holy shit, that's an actual word! HIDE IT BEFORE SOMEONE SEES."
-  ],
-  spaceSpam: [
-    "White space. The coward's paragraph.",
-    "Padding the word count. Classic journalism major move.",
-    "Adding white space for 'readability.' You should work in UX.",
-    "Space is not a personality trait."
-  ],
-  sameKey: [
-    "Bold choice. You're really interviewing that one letter.",
-    "jjjjjjjj -- the sound of someone falling asleep at a WeWork.",
-    "This is what AI training data looks like from the inside."
-  ],
-  slopDetected: [
-    "SLOP DETECTED. That word has been forwarded to the Hague.",
-    "'Synergy' has been deprecated. Please npm uninstall.",
-    "+10 LinkedIn points, -100 soul points.",
-    "Buzzword density exceeds OSHA limits.",
-    "The slop detector is personally offended."
-  ],
-  slopFlagged: "Flagged: '{word}' -- possible MBA involvement.",
-  halfway: [
-    "Halfway done. Word count: {n}. Hemingway's ghost just sighed.",
-    "30 seconds left. Quick, add a call to action nobody will follow."
-  ],
-  tenSec: [
-    "TEN SECONDS. PANIC-TYPE LIKE YOUR PERFORMANCE REVIEW DEPENDS ON IT."
-  ],
-  endZero: [
-    "Words written: 0. On the bright side, nothing you wrote was wrong.",
-    "ZERO WORDS. That's not failure, that's avant-garde.",
-    "Draft saved successfully as untitled_final_FINAL2.docx",
-    "You've invented silent blogging."
-  ],
-  endOnlySlop: [
-    "Your post has been accepted as a keynote.",
-    "This much slop is actually impressive. Have you considered consulting?"
-  ],
-  endOneWord: [
-    "One word. You've written a tweet. A bad tweet.",
-    "Minimalist blogging. One word, many investors."
-  ],
-  endCoherent: [
-    "Wait. This almost makes sense. Are you cheating?",
-    "Tragic. There was a soul in here."
-  ]
-};
+var COLORS = ["#a855f7","#ec4899","#06b6d4","#f97316"];
+var COLORS_DIM = ["rgba(168,85,247,0.12)","rgba(236,72,153,0.12)","rgba(6,182,212,0.12)","rgba(249,115,22,0.12)"];
 
-var COMBO_LABELS = { 2:"Disruptive!", 3:"Innovative!", 4:"Thought Leader!", 5:"PARADIGM SHIFT!" };
+var GAME_SECS = 60;
+var HIT_Y_RATIO = 0.87;
+var PERFECT_PX = 26;
+var GOOD_PX = 52;
 
-var MARGIN_TEXTS = [
-  "vague","source?","what does this even mean","per my last email",
-  "can we make this more impactful? (no)","who asked","evidence?",
-  "this means nothing","you wrote 'reimagines' three times"
-];
+function lane(ch) {
+  var c = ch.toLowerCase();
+  if (S_SET[c]) return 0;
+  if (L_SET[c]) return 1;
+  if (O_SET[c]) return 2;
+  return 0;
+}
+function dispCh(ch) {
+  if (ch === " ") return "___";
+  if (ch === "." || ch === "," || ch === "'") return " "+ch+" ";
+  return ch.toUpperCase();
+}
+function esc(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-var AUTOCOMPLETE_PHRASES = [
-  "in today's fast-paced digital landscape...",
-  "synergistically operationalize...",
-  "as a thought leader in the space...",
-  "leveraging our robust ecosystem...",
-  "delving into the transformative paradigm...",
-  "to move the needle going forward...",
-  "unprecedented holistic synergy..."
-];
-
-// Keyboard layout
-var KB_ROWS = [
-  { keys: "QWERTYUIOP", off: 0 },
-  { keys: "ASDFGHJKL", off: 0.5 },
-  { keys: "ZXCVBNM", off: 1.2 }
-];
-
-// ================================================================
-// DOM REFS
-// ================================================================
-
-var canvas = document.getElementById("game-canvas");
-var ctx = canvas.getContext("2d");
-
-// ================================================================
-// STATE
-// ================================================================
-
-var W, H;
-var gameActive = false;
-var timeLeft = 60;
-var elapsed = 0;
-var timerInterval = null;
-
-var typedText = "";
-var keysHit = 0;
-var slopCount = 0;
-var realWordCount = 0;
-var totalWordCount = 0;
-var lastRealWordTime = 0;
-
-// Physics
-var GRAVITY = 0.3;
-var DAMPING = 0.97;
-var leftHand, rightHand;
-var keysDown = { s:false, l:false, o:false, p:false };
-var hitKeys = [];
-var keyPositions = [];
-var kbX, kbY, kbW, kbH, keyW, keyH;
-
-// Commentary
-var lastCommentaryTime = -10;
-var firstKeyDone = false;
-var halfwayDone = false;
-var tenSecDone = false;
-var gibberishRun = 0;
-var gibberishFired = false;
-var consecutiveSpaces = 0;
-var lastHitChar = "";
-var sameCharCount = 0;
-
-// Slop combo
-var slopTimestamps = [];
-var comboBreaking = false;
-
-// Cat
-var catScheduled = 0;
-var catActive = false;
-var catStart = 0;
-var catX = 0;
-var catDone = false;
-var catLastKey = -1;
-
-// Layoff
-var layoffScheduled = 0;
-var layoffActive = false;
-var layoffStart = 0;
-var layoffDone = false;
-var layoffReturned = false;
-
-// Coffee
-var coffeeVisible = false;
-var coffeeX = 0, coffeeY = 0;
-var coffeeNextSpawn = 0;
-var coffeeSpawnTime = 0;
-var coffeeStacks = 0;
-var coffeeEndTimes = [];
-var bpm = 72;
-var bpmDisplay = false;
-
-// Autocomplete
-var acNextTime = 25;
-var acActive = false;
-var acPhrase = "";
-var acShowTime = 0;
-var acLastKeyTime = 0;
-
-// Audience
-var audience = 1;
-var tumbleweedDone = false;
-
-// Margin notes
-var marginCount = 0;
-
-// SLAP
-var slapLevel = 0;
-
-// Speed/chaos modifiers
-var speedMult = 1;
-var chaosMult = 1;
-
-// Audio
+// ---- AUDIO ----
 var audioCtx = null;
-function initAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
-function playKeySound(keyChar) {
+function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+function beep(type,f1,dur,f2,vol) {
   if (!audioCtx) return;
-  var osc = audioCtx.createOscillator();
-  var gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  var charCode = keyChar.charCodeAt(0);
-  var freq = 200 + (charCode % 26) * 25 + Math.random() * 30;
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-  gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.12);
+  var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f1, audioCtx.currentTime);
+  if (f2) o.frequency.linearRampToValueAtTime(f2, audioCtx.currentTime+dur);
+  g.gain.setValueAtTime(vol||0.14, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+dur);
 }
-function playSlopSound() {
-  if (!audioCtx) return;
-  var osc = audioCtx.createOscillator();
-  var gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.type = "sawtooth";
-  osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-  osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.3);
-  gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.3);
+function sndPerfect()  { beep("sine",880,0.12,null,0.18); }
+function sndGood()     { beep("sine",660,0.10,null,0.12); }
+function sndMiss()     { beep("triangle",160,0.15,null,0.12); }
+function sndSlopHit()  { beep("sawtooth",220,0.35,80,0.15); }
+function sndSlopDodge(){ beep("sine",440,0.25,880,0.14); }
+function sndChord() {
+  beep("sine",523,0.2,null,0.09);
+  setTimeout(function(){beep("sine",659,0.2,null,0.09);},40);
+  setTimeout(function(){beep("sine",784,0.2,null,0.09);},80);
 }
 
-// Particles
-var particles = [];
-function spawnParticles(x, y, color, count) {
-  for (var i = 0; i < count; i++) {
-    particles.push({
-      x: x, y: y,
-      vx: (Math.random() - 0.5) * 6,
-      vy: -Math.random() * 4 - 1,
-      life: 20 + Math.random() * 15,
-      maxLife: 35,
-      color: color,
-      size: 2 + Math.random() * 3
-    });
+// ---- DOM ----
+var $start = document.getElementById("start-screen");
+var $over = document.getElementById("gameover-screen");
+var $play = document.getElementById("gameplay");
+var $canvas = document.getElementById("lane-canvas");
+var $target = document.getElementById("target-sentence");
+var $blog = document.getElementById("blog-output");
+var $score = document.getElementById("hud-score");
+var $combo = document.getElementById("hud-combo");
+var $timer = document.getElementById("hud-timer");
+var $acc = document.getElementById("hud-accuracy");
+var $counts = document.getElementById("hud-counts");
+var $comment = document.getElementById("commentary");
+var $flash = document.getElementById("flash-overlay");
+var $speedN = document.getElementById("speed-notify");
+var $nextN = document.getElementById("next-notify");
+var $slapFace = document.getElementById("slap-face");
+var $slapMeter = document.getElementById("slap-meter");
+var $slapNotes = document.getElementById("slap-notes");
+var $laneKeys = document.getElementById("lane-keys");
+var $laneArea = document.getElementById("lane-area");
+var $slapSidebar = document.getElementById("slap-sidebar");
+
+var ctx, cW, cH, hitY, lW;
+var keyEls = [];
+
+function buildKeys() {
+  $laneKeys.innerHTML = "";
+  var names = ["S","L","O","P"];
+  for (var i=0;i<4;i++) {
+    var d = document.createElement("div");
+    d.className = "lk lk-"+i;
+    d.textContent = names[i];
+    d.style.width = lW+"px";
+    $laneKeys.appendChild(d);
+    keyEls[i] = d;
   }
-}
-function updateParticles() {
-  for (var i = particles.length - 1; i >= 0; i--) {
-    var p = particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.15;
-    p.life--;
-    if (p.life <= 0) particles.splice(i, 1);
-  }
-}
-function drawParticles() {
-  for (var i = 0; i < particles.length; i++) {
-    var p = particles[i];
-    ctx.globalAlpha = p.life / p.maxLife;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size * (p.life / p.maxLife), 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
-
-// Screen shake
-var shakeAmount = 0;
-function addShake(amount) { shakeAmount = Math.min(shakeAmount + amount, 8); }
-
-// Hit streak
-var hitStreak = 0;
-var lastHitTime = 0;
-
-// High score
-var highScore = parseInt(localStorage.getItem("slop-hs") || "0", 10);
-
-// ================================================================
-// KEYBOARD LAYOUT & RESIZE
-// ================================================================
-
-function makeHand(ax, ay, side) {
-  return {
-    anchor: { x: ax, y: ay },
-    points: [
-      { x: ax, y: ay+40, ox: ax, oy: ay+40 },
-      { x: ax, y: ay+80, ox: ax, oy: ay+80 },
-      { x: ax, y: ay+120, ox: ax, oy: ay+120 }
-    ],
-    segs: [50, 45, 35],
-    wristForce: 0,
-    lastHitKey: null,
-    hitCooldown: 0,
-    trail: [],
-    visible: true,
-    side: side || "left"
-  };
 }
 
 function resize() {
-  W = canvas.width = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-  kbW = Math.min(W * 0.68, 680);
-  keyW = kbW / 10.5;
-  keyH = keyW * 0.85;
-  kbH = keyH * 4.2;
-  kbX = (W - kbW) / 2;
-  kbY = H * 0.50;
-  buildKeyPositions();
-  if (leftHand) {
-    leftHand.anchor.x = kbX + kbW * 0.28;
-    leftHand.anchor.y = kbY - 65;
-  }
-  if (rightHand) {
-    rightHand.anchor.x = kbX + kbW * 0.72;
-    rightHand.anchor.y = kbY - 65;
-  }
+  var sw = $slapSidebar.offsetWidth;
+  var w = $laneArea.clientWidth - sw;
+  var h = $laneArea.clientHeight;
+  var dpr = window.devicePixelRatio || 1;
+  $canvas.width = w * dpr;
+  $canvas.height = h * dpr;
+  $canvas.style.width = w + "px";
+  $canvas.style.height = h + "px";
+  cW = w; cH = h;
+  hitY = cH * HIT_Y_RATIO;
+  lW = cW / 4;
+  ctx = $canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  $laneKeys.style.width = w + "px";
+  buildKeys();
 }
 
-function buildKeyPositions() {
-  keyPositions = [];
-  for (var r = 0; r < KB_ROWS.length; r++) {
-    var row = KB_ROWS[r];
-    var rx = kbX + row.off * keyW;
-    var ry = kbY + r * (keyH + 4);
-    for (var k = 0; k < row.keys.length; k++) {
-      keyPositions.push({
-        x: rx + k * (keyW + 3), y: ry, w: keyW, h: keyH,
-        char: row.keys[k].toLowerCase()
-      });
+// ---- STATE ----
+var mode = "start"; // start | play | over
+var notes, blogC, score2, combo2, maxC, perfC, goodC, missC, slopHC, slopDC, totalH;
+var timeL, speed, lastSU, sIdx, cIdx, nxtNote, nxtSlop, slopM;
+var commentT, commentF, missStr, perfStr;
+var raf, prevT;
+
+function start() {
+  initAudio(); mode = "play";
+  notes=[]; blogC=[]; score2=0; combo2=0; maxC=0;
+  perfC=0; goodC=0; missC=0; slopHC=0; slopDC=0; totalH=0;
+  timeL=GAME_SECS; speed=140; lastSU=0;
+  sIdx=Math.floor(Math.random()*SENTENCES.length); cIdx=0;
+  nxtNote=0; nxtSlop=8+Math.random()*4; slopM=0;
+  commentT=0; commentF={}; missStr=0; perfStr=0;
+
+  $start.style.display="none"; $over.style.display="none";
+  $play.style.display="flex";
+  resize(); updTarget(); updBlog(); updHUD(); updSLAP();
+  prevT = performance.now();
+  raf = requestAnimationFrame(loop);
+}
+
+// ---- LOOP ----
+function loop(now) {
+  var dt = Math.min((now - prevT)/1000, 0.05);
+  prevT = now;
+  timeL -= dt;
+  if (timeL <= 0) { timeL=0; end(); return; }
+
+  // speed up every 15s
+  var sl = Math.floor((GAME_SECS - timeL)/15);
+  if (sl > lastSU) { lastSU = sl; speed = 140 + sl*45; showNotify($speedN); }
+
+  // spawn letters
+  nxtNote -= dt;
+  if (nxtNote <= 0) {
+    var sen = SENTENCES[sIdx];
+    if (cIdx >= sen.length) {
+      sIdx = (sIdx+1) % SENTENCES.length;
+      cIdx = 0;
+      updTarget();
+      showNotify($nextN);
+    }
+    var ch = sen[cIdx];
+    notes.push({ch:ch, disp:dispCh(ch), lane:lane(ch), y:-30, hit:false, miss:false, slop:false, hType:null, hTime:0, a:1});
+    cIdx++;
+    nxtNote = Math.max(0.18, 0.45 - (speed-140)*0.002);
+  }
+
+  // spawn slop
+  nxtSlop -= dt;
+  if (nxtSlop <= 0) {
+    var sw = SLOP_WORDS[Math.floor(Math.random()*SLOP_WORDS.length)];
+    notes.push({ch:null, disp:sw, lane:3, y:-40, hit:false, miss:false, slop:true, slopW:sw, hType:null, hTime:0, a:1});
+    nxtSlop = 8 + Math.random()*4;
+  }
+
+  // move notes
+  for (var i=0;i<notes.length;i++) {
+    var n = notes[i];
+    n.y += (n.slop ? speed*0.85 : speed) * dt;
+    if (!n.hit && !n.miss && n.y > hitY + GOOD_PX + 12) {
+      n.miss = true;
+      if (n.slop) doSlopDodge(n);
+      else doMiss(n);
     }
   }
-  var spW = keyW * 5;
-  keyPositions.push({
-    x: kbX + (kbW - spW) / 2,
-    y: kbY + 3 * (keyH + 4),
-    w: spW, h: keyH, char: " ", label: "SPACE"
-  });
+  notes = notes.filter(function(n){ return n.y < cH+60; });
+
+  // commentary timer
+  if (commentT > 0) { commentT -= dt; if (commentT<=0) $comment.style.opacity="0"; }
+
+  render(); updHUD();
+  raf = requestAnimationFrame(loop);
 }
 
-function initHands() {
-  leftHand = makeHand(kbX + kbW * 0.28, kbY - 65, "left");
-  rightHand = makeHand(kbX + kbW * 0.72, kbY - 65, "right");
-}
-
-// ================================================================
-// PHYSICS ENGINE
-// ================================================================
-
-function updatePoint(p, grav, damp) {
-  var vx = (p.x - p.ox) * damp;
-  var vy = (p.y - p.oy) * damp;
-  p.ox = p.x;
-  p.oy = p.y;
-  p.x += vx;
-  p.y += vy + grav;
-}
-
-function constrainDist(ax, ay, p, dist) {
-  var dx = p.x - ax;
-  var dy = p.y - ay;
-  var d = Math.sqrt(dx*dx + dy*dy) || 0.01;
-  var diff = (d - dist) / d * 0.5;
-  p.x -= dx * diff;
-  p.y -= dy * diff;
-}
-
-function updateHand(hand) {
-  if (!hand.visible) return;
-  var grav = GRAVITY * chaosMult;
-  var damp = DAMPING / (chaosMult > 1 ? 1 + (chaosMult-1)*0.3 : 1);
-  var force = 15 * speedMult;
-
-  var wrist = hand.points[1];
-  var finger = hand.points[2];
-  wrist.y += hand.wristForce * force;
-  finger.y += hand.wristForce * force * 0.6;
-
-  var lateralDir = hand.side === "left" ? -1 : 1;
-  wrist.x += hand.wristForce * force * 0.4 * lateralDir;
-  finger.x += hand.wristForce * force * 0.3 * lateralDir;
-
-  for (var i = 0; i < hand.points.length; i++) {
-    updatePoint(hand.points[i], grav, damp);
-  }
-
-  for (var iter = 0; iter < 5; iter++) {
-    constrainDist(hand.anchor.x, hand.anchor.y, hand.points[0], hand.segs[0]);
-    constrainDist(hand.points[0].x, hand.points[0].y, hand.points[1], hand.segs[1]);
-    constrainDist(hand.points[1].x, hand.points[1].y, hand.points[2], hand.segs[2]);
-    for (var j = 0; j < hand.points.length; j++) {
-      if (hand.points[j].y > kbY + kbH + 20) hand.points[j].y = kbY + kbH + 20;
-    }
-  }
-
-  if (hand.hitCooldown > 0) hand.hitCooldown--;
-
-  var tip = hand.points[2];
-  var tipVy = tip.y - tip.oy;
-  if (tipVy > 1.5 && hand.hitCooldown <= 0) {
-    for (var ki = 0; ki < keyPositions.length; ki++) {
-      var key = keyPositions[ki];
-      if (tip.x > key.x && tip.x < key.x + key.w && tip.y > key.y && tip.y < key.y + key.h) {
-        if (hand.lastHitKey !== ki) {
-          onKeyHit(key.char, ki);
-          hand.lastHitKey = ki;
-          hand.hitCooldown = 5;
-          tip.y = key.y - 5;
-          tip.oy = tip.y + 8;
-        }
-        break;
-      }
-    }
-  }
-  if (tipVy <= 0) hand.lastHitKey = null;
-
-  hand.trail.push({ x: tip.x, y: tip.y });
-  if (hand.trail.length > 15) hand.trail.shift();
-}
-
-// Coffee collision check
-function checkCoffeeCollision() {
-  if (!coffeeVisible) return;
-  var hands = [leftHand, rightHand];
-  for (var h = 0; h < hands.length; h++) {
-    if (!hands[h].visible) continue;
-    var tip = hands[h].points[2];
-    var dx = tip.x - coffeeX;
-    var dy = tip.y - coffeeY;
-    if (dx*dx + dy*dy < 900) {
-      activateCoffee();
-      coffeeVisible = false;
-      return;
-    }
-  }
-}
-
-// ================================================================
-// KEY HIT SYSTEM
-// ================================================================
-
-function onKeyHit(char, idx) {
-  if (!gameActive) return;
-  typedText += char;
-  keysHit++;
-  hitKeys.push({ idx: idx, timer: 14 });
-  acLastKeyTime = elapsed;
-
-  playKeySound(char);
-  spawnParticles(keyPositions[idx].x + keyPositions[idx].w/2, keyPositions[idx].y, "#9b59b6", 6);
-  addShake(1.5);
-
-  var now = Date.now();
-  if (now - lastHitTime < 800) {
-    hitStreak++;
-  } else {
-    hitStreak = 1;
-  }
-  lastHitTime = now;
-
-  document.getElementById("keys-hit").textContent = keysHit;
-
-  if (!firstKeyDone) {
-    firstKeyDone = true;
-    showCommentary(pick(COMM.firstKey), "var(--cyan)");
-  }
-
-  // Same key tracking
-  if (char === lastHitChar) {
-    sameCharCount++;
-    if (sameCharCount === 8) {
-      showCommentary(pick(COMM.sameKey), "var(--orange)");
-    }
-  } else {
-    lastHitChar = char;
-    sameCharCount = 1;
-  }
-
-  // Space tracking
-  if (char === " ") {
-    consecutiveSpaces++;
-    if (consecutiveSpaces === 4) {
-      showCommentary(pick(COMM.spaceSpam), "var(--muted)");
-    }
-    // Check word that just ended
-    checkLastWord();
-    gibberishRun = 0;
-    gibberishFired = false;
-  } else {
-    consecutiveSpaces = 0;
-    gibberishRun++;
-    if (gibberishRun >= 15 && !gibberishFired) {
-      gibberishFired = true;
-      showCommentary(pick(COMM.gibberish), "var(--orange)");
-    }
-  }
-
-  // Dismiss autocomplete if player hits a key
-  if (acActive) dismissAutocomplete();
-
-  checkSlopPhrases();
-  updateTypedDisplay();
-  updateWordCount();
-}
-
-function checkLastWord() {
-  var words = typedText.trimEnd().split(/\s+/);
-  if (words.length === 0) return;
-  var last = words[words.length - 1].toLowerCase();
-  if (last.length === 0) return;
-
-  // Check slop
-  if (SLOP_WORDS.indexOf(last) >= 0) {
-    registerSlop(last);
-  }
-  // Check real word
-  if (REAL_SET[last]) {
-    realWordCount++;
-    lastRealWordTime = elapsed;
-    audience += 1 + Math.floor(Math.random() * 3);
-    updateAudience();
-    if (realWordCount <= 5 || Math.random() < 0.3) {
-      showCommentary(pick(COMM.realWord), "var(--green)");
-    }
-    // Combo breaker?
-    var recentSlop = countRecentSlop();
-    if (recentSlop >= 2) {
-      showCombo("COMBO BREAKER", "var(--cyan)", "");
-      slopTimestamps = [];
-    }
-  }
-}
-
-// Track which phrases we've already caught
-var caughtPhrases = {};
-
-function checkSlopPhrases() {
-  var lower = typedText.toLowerCase();
-  for (var i = 0; i < SLOP_PHRASES.length; i++) {
-    var phrase = SLOP_PHRASES[i];
-    var idx = lower.indexOf(phrase);
-    while (idx >= 0) {
-      var key = i + "_" + idx;
-      if (!caughtPhrases[key]) {
-        caughtPhrases[key] = true;
-        registerSlop(phrase);
-      }
-      idx = lower.indexOf(phrase, idx + 1);
-    }
-  }
-}
-
-function registerSlop(word) {
-  slopCount++;
-  slopTimestamps.push(elapsed);
-  document.getElementById("slop-count").textContent = slopCount;
-
-  playSlopSound();
-  spawnParticles(W/2, H/2, "#e74c3c", 12);
-  addShake(5);
-
-  // Audience penalty
-  audience -= 2 + Math.floor(Math.random() * 4);
-  updateAudience();
-
-  // Commentary
-  if (Math.random() < 0.5) {
-    showCommentary(pick(COMM.slopDetected), "var(--red)");
-  } else {
-    showCommentary(COMM.slopFlagged.replace("{word}", word), "var(--red)");
-  }
-
-  // SLAP update
-  updateSLAP();
-
-  // Margin note
-  addMarginNote();
-
-  // Combo check
-  var recent = countRecentSlop();
-  if (recent >= 2) {
-    var label = COMBO_LABELS[Math.min(recent, 5)] || COMBO_LABELS[5];
-    showCombo("SLOP COMBO x" + recent + "!", "var(--pink)", label);
-  }
-}
-
-function countRecentSlop() {
-  var cutoff = elapsed - 10;
-  var count = 0;
-  for (var i = 0; i < slopTimestamps.length; i++) {
-    if (slopTimestamps[i] >= cutoff) count++;
-  }
-  return count;
-}
-
-function updateWordCount() {
-  var words = typedText.trim().split(/\s+/).filter(function(w) { return w.length > 0; });
-  totalWordCount = words.length;
-  document.getElementById("word-count").textContent = totalWordCount;
-}
-
-function updateTypedDisplay() {
-  var el = document.getElementById("typed-text");
-  var display = typedText.slice(-100);
-  var parts = display.split(/(\s+)/);
-  var html = "";
-  for (var i = 0; i < parts.length; i++) {
-    var w = parts[i].toLowerCase().replace(/[^a-z]/g, "");
-    if (w && SLOP_WORDS.indexOf(w) >= 0) {
-      html += '<span class="slop">' + esc(parts[i]) + '</span>';
-    } else {
-      html += esc(parts[i]);
-    }
-  }
-  el.innerHTML = html;
-}
-
-function esc(s) {
-  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-
-// ================================================================
-// COMMENTARY SYSTEM
-// ================================================================
-
-function showCommentary(msg, color) {
-  if (elapsed - lastCommentaryTime < 4) return;
-  lastCommentaryTime = elapsed;
-  var container = document.getElementById("commentary-container");
-  var div = document.createElement("div");
-  div.className = "commentary-msg";
-  div.textContent = msg;
-  if (color) div.style.borderColor = color;
-  container.appendChild(div);
-  setTimeout(function() { div.remove(); }, 4200);
-}
-
-function showCombo(text, color, label) {
-  var div = document.createElement("div");
-  div.className = "combo-display";
-  div.style.color = color;
-  div.innerHTML = esc(text) + (label ? '<span class="combo-label">' + esc(label) + '</span>' : '');
-  document.body.appendChild(div);
-  setTimeout(function() { div.remove(); }, 1600);
-}
-
-function pick(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-// ================================================================
-// S.L.A.P. DETECTOR
-// ================================================================
-
-function updateSLAP() {
-  var fill = document.getElementById("slap-fill");
-  var face = document.getElementById("slap-face");
-  var verdict = document.getElementById("slap-verdict");
-  var pct = Math.min(100, slopCount * 12);
-  fill.style.width = pct + "%";
-
-  if (slopCount <= 2) {
-    slapLevel = 1;
-    fill.style.background = "var(--yellow)";
-    face.textContent = "\u{1F612}";
-    verdict.textContent = "hmm";
-    verdict.style.color = "var(--yellow)";
-  } else if (slopCount <= 4) {
-    slapLevel = 2;
-    fill.style.background = "var(--orange)";
-    face.textContent = "\u{1F624}";
-    verdict.textContent = "Buzzword density concerning";
-    verdict.style.color = "var(--orange)";
-  } else if (slopCount <= 6) {
-    slapLevel = 3;
-    fill.style.background = "var(--red)";
-    face.textContent = "\u{1F624}";
-    verdict.textContent = "PARADIGM SHIFT IMMINENT";
-    verdict.style.color = "var(--red)";
-    document.getElementById("slap-panel").style.borderColor = "var(--red)";
-  } else {
-    slapLevel = 4;
-    fill.style.background = "var(--pink)";
-    face.textContent = "\u{1F92F}";
-    verdict.textContent = "MELTDOWN";
-    verdict.style.color = "var(--pink)";
-    document.getElementById("slap-panel").style.animation = "pulse 0.4s infinite";
-    document.getElementById("linkedin-overlay").style.opacity = "1";
-  }
-}
-
-// ================================================================
-// AUDIENCE COUNTER
-// ================================================================
-
-function updateAudience() {
-  var el = document.getElementById("audience-count");
-  var sub = document.getElementById("audience-sub");
-  el.textContent = audience;
-  if (audience < 0) {
-    el.style.color = "var(--red)";
-    sub.textContent = "(they're actively un-reading your work)";
-  } else if (audience === 0) {
-    el.style.color = "var(--muted)";
-    sub.textContent = "";
-  } else {
-    el.style.color = "var(--cyan)";
-    sub.textContent = "";
-  }
-}
-
-function checkAudienceDecay() {
-  if (elapsed - lastRealWordTime > 10 && audience > 0) {
-    audience = 0;
-    updateAudience();
-    if (!tumbleweedDone) {
-      tumbleweedDone = true;
-      spawnTumbleweed();
-    }
-  }
-  if (elapsed - lastRealWordTime > 15 && slopCount > 3 && audience > -5) {
-    audience = Math.max(audience - 1, -10);
-    updateAudience();
-  }
-}
-
-function spawnTumbleweed() {
-  var tw = document.createElement("div");
-  tw.className = "tumbleweed";
-  tw.textContent = "\u{1F335}";
-  document.body.appendChild(tw);
-  setTimeout(function() { tw.remove(); }, 3200);
-}
-
-// ================================================================
-// MARGIN NOTES
-// ================================================================
-
-function addMarginNote() {
-  var container = document.getElementById("margin-notes");
-  var notes = container.children;
-  if (notes.length >= 8) {
-    notes[0].remove();
-  }
-  var note = document.createElement("div");
-  note.className = "margin-note";
-  note.textContent = pick(MARGIN_TEXTS);
-  note.style.top = (marginCount % 8) * 50 + Math.random() * 20 + "px";
-  note.style.transform = "rotate(" + (Math.random() * 10 - 5) + "deg)";
-  container.appendChild(note);
-  marginCount++;
-  setTimeout(function() { if (note.parentNode) note.remove(); }, 12000);
-}
-
-// ================================================================
-// CAT EVENT
-// ================================================================
-
-function updateCat() {
-  if (catDone || !catActive) return;
-  var progress = (elapsed - catStart) / 4;
-  if (progress >= 1) {
-    catActive = false;
-    catDone = true;
-    return;
-  }
-  catX = kbX - 20 + (kbW + 40) * progress;
-  var catY2 = kbY + keyH * 0.4;
-
-  // Hit keys the cat walks over
-  for (var i = 0; i < keyPositions.length; i++) {
-    var k = keyPositions[i];
-    if (catX > k.x && catX < k.x + k.w && catY2 > k.y && catY2 < k.y + k.h) {
-      if (catLastKey !== i) {
-        catLastKey = i;
-        onKeyHit(k.char, i);
-      }
-    }
-  }
-}
-
-function drawCat() {
-  if (!catActive) return;
-  var progress = (elapsed - catStart) / 4;
-  if (progress >= 1) return;
-  var cx = kbX - 20 + (kbW + 40) * progress;
-  var cy = kbY + keyH * 0.3;
-  ctx.font = "24px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("\u{1F408}", cx, cy);
-}
-
-// ================================================================
-// LAYOFF EVENT
-// ================================================================
-
-function startLayoff() {
-  layoffActive = true;
-  layoffStart = elapsed;
-  rightHand.visible = false;
-  rightHand.wristForce = 0;
-  keysDown.o = false;
-  keysDown.p = false;
-  document.getElementById("layoff-title").textContent = "RESTRUCTURING NOTICE";
-  document.getElementById("layoff-body").textContent =
-    "Your right arm has been let go due to restructuring. We wish it well in future endeavors.";
-  document.getElementById("layoff-notif").classList.add("visible");
-}
-
-function updateLayoff() {
-  if (!layoffActive) return;
-  if (elapsed - layoffStart >= 12) {
-    layoffActive = false;
-    layoffReturned = true;
-    rightHand.visible = true;
-    // Reset right hand position
-    rightHand.points[0].x = rightHand.anchor.x;
-    rightHand.points[0].y = rightHand.anchor.y + 40;
-    rightHand.points[0].ox = rightHand.points[0].x;
-    rightHand.points[0].oy = rightHand.points[0].y;
-    rightHand.points[1].x = rightHand.anchor.x;
-    rightHand.points[1].y = rightHand.anchor.y + 80;
-    rightHand.points[1].ox = rightHand.points[1].x;
-    rightHand.points[1].oy = rightHand.points[1].y;
-    rightHand.points[2].x = rightHand.anchor.x;
-    rightHand.points[2].y = rightHand.anchor.y + 120;
-    rightHand.points[2].ox = rightHand.points[2].x;
-    rightHand.points[2].oy = rightHand.points[2].y;
-    document.getElementById("layoff-title").textContent = "RE-HIRING NOTICE";
-    document.getElementById("layoff-body").textContent =
-      "Your right arm has been re-hired as a contractor.";
-    setTimeout(function() {
-      document.getElementById("layoff-notif").classList.remove("visible");
-    }, 3000);
-  }
-}
-
-// ================================================================
-// COFFEE POWER-UP
-// ================================================================
-
-function spawnCoffee() {
-  coffeeVisible = true;
-  coffeeSpawnTime = elapsed;
-  coffeeX = kbX + (Math.random() < 0.5 ? -35 : kbW + 35);
-  coffeeY = kbY + kbH * 0.3 + Math.random() * kbH * 0.4;
-}
-
-function activateCoffee() {
-  coffeeStacks = Math.min(coffeeStacks + 1, 2);
-  var endTime = elapsed + 8;
-  coffeeEndTimes.push(endTime);
-  recalcCoffeeModifiers();
-  bpmDisplay = true;
-  document.getElementById("bpm-counter").style.opacity = "1";
-  if (coffeeStacks >= 2) {
-    showCommentary("Your hands are vibrating. This is fine.", "var(--orange)");
-  }
-}
-
-function updateCoffee() {
-  // Expire old coffees
-  var changed = false;
-  while (coffeeEndTimes.length > 0 && coffeeEndTimes[0] <= elapsed) {
-    coffeeEndTimes.shift();
-    coffeeStacks = Math.max(0, coffeeStacks - 1);
-    changed = true;
-  }
-  if (changed) {
-    recalcCoffeeModifiers();
-    if (coffeeStacks === 0) {
-      bpmDisplay = false;
-      document.getElementById("bpm-counter").style.opacity = "0";
-    }
-  }
-  // BPM
-  if (bpmDisplay) {
-    var targetBPM = 72 + coffeeStacks * 60;
-    bpm += (targetBPM - bpm) * 0.05;
-    document.getElementById("bpm-counter").textContent = Math.round(bpm) + " BPM \u{2764}";
-  }
-}
-
-function recalcCoffeeModifiers() {
-  if (coffeeStacks === 0) {
-    speedMult = 1;
-    chaosMult = 1;
-  } else if (coffeeStacks === 1) {
-    speedMult = 1.8;
-    chaosMult = 1.5;
-  } else {
-    speedMult = 1.8 * 1.8;
-    chaosMult = 1.5 * 1.5;
-  }
-}
-
-function drawCoffee() {
-  if (!coffeeVisible) return;
-  ctx.font = "28px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("\u{2615}", coffeeX, coffeeY);
-  // Subtle glow
-  ctx.fillStyle = "rgba(255,180,50,0.08)";
-  ctx.beginPath();
-  ctx.arc(coffeeX, coffeeY, 22, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-// ================================================================
-// AUTOCOMPLETE GREMLIN
-// ================================================================
-
-function updateAutocomplete() {
-  if (!acActive) return;
-  var timeSinceKey = elapsed - acLastKeyTime;
-  if (timeSinceKey >= 3) {
-    // Auto-fill
-    typedText += acPhrase;
-    keysHit += acPhrase.length;
-    document.getElementById("keys-hit").textContent = keysHit;
-    // Detect slop in the phrase
-    var phraseWords = acPhrase.toLowerCase().split(/\s+/);
-    for (var i = 0; i < phraseWords.length; i++) {
-      var w = phraseWords[i].replace(/[^a-z]/g, "");
-      if (SLOP_WORDS.indexOf(w) >= 0) registerSlop(w);
-    }
-    checkSlopPhrases();
-    updateTypedDisplay();
-    updateWordCount();
-    acActive = false;
-    document.getElementById("autocomplete-ghost").textContent = "";
-    // Gremlin wink
-    var grem = document.getElementById("gremlin-face");
-    grem.style.opacity = "1";
-    setTimeout(function() { grem.style.opacity = "0"; }, 1500);
-  }
-}
-
-function showAutocomplete() {
-  acActive = true;
-  acPhrase = pick(AUTOCOMPLETE_PHRASES);
-  acShowTime = elapsed;
-  acLastKeyTime = elapsed;
-  document.getElementById("autocomplete-ghost").textContent = acPhrase;
-}
-
-function dismissAutocomplete() {
-  if (acActive) {
-    acActive = false;
-    document.getElementById("autocomplete-ghost").textContent = "";
-  }
-}
-
-// ================================================================
-// RENDERING
-// ================================================================
-
-function roundRect(c, x, y, w, h, r) {
-  c.beginPath();
-  c.moveTo(x+r, y);
-  c.lineTo(x+w-r, y);
-  c.quadraticCurveTo(x+w, y, x+w, y+r);
-  c.lineTo(x+w, y+h-r);
-  c.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-  c.lineTo(x+r, y+h);
-  c.quadraticCurveTo(x, y+h, x, y+h-r);
-  c.lineTo(x, y+r);
-  c.quadraticCurveTo(x, y, x+r, y);
-  c.closePath();
-}
-
-function drawKeyboard() {
-  for (var i = 0; i < keyPositions.length; i++) {
-    var key = keyPositions[i];
-    var isHit = false;
-    for (var h = 0; h < hitKeys.length; h++) {
-      if (hitKeys[h].idx === i) { isHit = true; break; }
-    }
-
-    // Check proximity to fingertips
-    var nearLeft = false, nearRight = false;
-    if (leftHand && leftHand.visible) {
-      var ltip = leftHand.points[2];
-      var dx = (key.x + key.w/2) - ltip.x;
-      var dy = (key.y + key.h/2) - ltip.y;
-      if (dx*dx + dy*dy < 2500) nearLeft = true;
-    }
-    if (rightHand && rightHand.visible) {
-      var rtip = rightHand.points[2];
-      var dx2 = (key.x + key.w/2) - rtip.x;
-      var dy2 = (key.y + key.h/2) - rtip.y;
-      if (dx2*dx2 + dy2*dy2 < 2500) nearRight = true;
-    }
-
-    // Shadow / glow
-    if (isHit) {
-      ctx.shadowColor = "rgba(155,89,182,0.6)";
-      ctx.shadowBlur = 15;
-    }
-
-    if (nearLeft || nearRight) {
-      ctx.fillStyle = isHit ? "rgba(155, 89, 182, 0.8)" : "rgba(50, 35, 70, 0.9)";
-      ctx.strokeStyle = nearLeft ? "#9b59b6" : "#e74c8c";
-    } else {
-      ctx.fillStyle = isHit ? "rgba(155,89,182,0.65)" : "rgba(30,22,48,0.85)";
-      ctx.strokeStyle = isHit ? "#e74c8c" : "#3a2a5a";
-    }
-    ctx.lineWidth = 1.5;
-    roundRect(ctx, key.x, key.y, key.w, key.h, 5);
-    ctx.fill();
-    ctx.stroke();
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-
-    ctx.fillStyle = isHit ? "#fff" : (nearLeft || nearRight) ? "#8a7a9a" : "#5a4a6a";
-    ctx.font = (key.char === " " ? "9" : "11") + "px monospace";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(key.label || key.char.toUpperCase(), key.x + key.w/2, key.y + key.h/2);
-  }
-
-  for (var k = hitKeys.length - 1; k >= 0; k--) {
-    hitKeys[k].timer--;
-    if (hitKeys[k].timer <= 0) hitKeys.splice(k, 1);
-  }
-}
-
-function drawHand(hand, color) {
-  if (!hand.visible) return;
-  var pts = [hand.anchor, hand.points[0], hand.points[1], hand.points[2]];
-
-  // Trail
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.globalAlpha = 0.12;
-  ctx.beginPath();
-  for (var t = 0; t < hand.trail.length; t++) {
-    if (t === 0) ctx.moveTo(hand.trail[t].x, hand.trail[t].y);
-    else ctx.lineTo(hand.trail[t].x, hand.trail[t].y);
-  }
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-
-  // Arm segments
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 6;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(pts[0].x, pts[0].y);
-  for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-  ctx.stroke();
-
-  // Joints
-  for (var j = 0; j < pts.length; j++) {
-    ctx.fillStyle = j === 3 ? "#fff" : color;
-    ctx.beginPath();
-    ctx.arc(pts[j].x, pts[j].y, j === 3 ? 8 : 5, 0, Math.PI*2);
-    ctx.fill();
-  }
-
-  // Fingers
-  var tip = pts[3];
-  var wristPt = pts[2];
-  var angle = Math.atan2(tip.y - wristPt.y, tip.x - wristPt.x);
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 2;
-  for (var f = -2; f <= 2; f++) {
-    var fa = angle + f * 0.22;
-    ctx.beginPath();
-    ctx.moveTo(tip.x, tip.y);
-    ctx.lineTo(tip.x + Math.cos(fa)*12, tip.y + Math.sin(fa)*12);
-    ctx.stroke();
-  }
-}
-
-function drawMonitor() {
-  var mW = kbW * 0.75;
-  var mH = 44;
-  var mX = (W - mW) / 2;
-  var mY = kbY - 110;
-
-  ctx.fillStyle = "rgba(13,10,20,0.8)";
-  ctx.strokeStyle = "#2a1f3a";
-  ctx.lineWidth = 1.5;
-  roundRect(ctx, mX, mY, mW, mH, 5);
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.fillStyle = "#3a2a5a";
-  ctx.font = "8px monospace";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "top";
-  ctx.fillText("draft_blog_post.md", mX + 8, mY + 4);
-
-  ctx.fillStyle = "#4a3a6a";
-  ctx.font = "10px monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  var hints = [
-    "try to type: 'open source is good'",
-    "try to type: 'hello world'",
-    "try to type: 'i am not a robot'",
-    "try to type: 'this is fine'",
-    "try to type: 'ship it'"
-  ];
-  ctx.fillText(hints[Math.floor(timeLeft / 12) % hints.length], mX + mW/2, mY + mH/2 + 5);
-}
-
-// ================================================================
-// GAME LOOP
-// ================================================================
-
-function frame() {
-  ctx.clearRect(0, 0, W, H);
-
-  // Always render arms and keyboard (even on start screen for practice)
-  var isStartScreen = document.getElementById("start-screen").style.display !== "none";
-
-  if (!gameActive && !isStartScreen) {
-    requestAnimationFrame(frame);
-    return;
-  }
-
-  // On start screen: just render keyboard + arms, no events
-  if (isStartScreen) {
-    updateHand(leftHand);
-    updateHand(rightHand);
-    updateParticles();
-    drawKeyboard();
-    drawHand(leftHand, "#9b59b6");
-    drawHand(rightHand, "#e74c8c");
-    drawParticles();
-    requestAnimationFrame(frame);
-    return;
-  }
-
-  // Screen shake
-  if (shakeAmount > 0.5) {
-    ctx.save();
-    ctx.translate(
-      (Math.random() - 0.5) * shakeAmount * 2,
-      (Math.random() - 0.5) * shakeAmount * 2
-    );
-  }
-
-  // Physics
-  updateHand(leftHand);
-  updateHand(rightHand);
-
-  // Events
-  checkCoffeeCollision();
-  updateCat();
-  updateLayoff();
-  updateCoffee();
-  updateAutocomplete();
-  updateParticles();
-
-  // Draw
-  drawMonitor();
-  drawKeyboard();
-  drawCoffee();
-  drawCat();
-  drawHand(leftHand, "#9b59b6");
-  drawHand(rightHand, "#e74c8c");
-  drawParticles();
-
-  // Hit streak display
-  if (hitStreak > 2) {
-    ctx.fillStyle = hitStreak > 8 ? "#e74c8c" : hitStreak > 5 ? "#f39c12" : "#9b59b6";
-    ctx.font = (16 + hitStreak * 2) + "px sans-serif";
-    ctx.textAlign = "center";
-    ctx.globalAlpha = 0.8;
-    ctx.fillText(hitStreak + "x COMBO!", W/2, kbY - 20);
-    ctx.globalAlpha = 1;
-  }
-
-  // End screen shake
-  if (shakeAmount > 0.5) ctx.restore();
-  shakeAmount *= 0.85;
-
-  requestAnimationFrame(frame);
-}
-
-// ================================================================
-// TIMER TICK (1 per second)
-// ================================================================
-
-function tick() {
-  timeLeft--;
-  elapsed = 60 - timeLeft;
-
-  var timerEl = document.getElementById("timer-display");
-  timerEl.textContent = timeLeft;
-  if (timeLeft <= 5) timerEl.className = "danger";
-  else if (timeLeft <= 15) timerEl.className = "warn";
-  else timerEl.className = "";
-
-  // Scheduled events
-  if (!catDone && !catActive && elapsed >= catScheduled) {
-    catActive = true;
-    catStart = elapsed;
-    catLastKey = -1;
-  }
-
-  if (!layoffDone && !layoffActive && elapsed >= layoffScheduled) {
-    layoffDone = true;
-    startLayoff();
-  }
-
-  if (coffeeVisible === false && elapsed >= coffeeNextSpawn && coffeeNextSpawn > 0) {
-    spawnCoffee();
-    coffeeNextSpawn += 15 + Math.random() * 5;
-    if (coffeeNextSpawn > 55) coffeeNextSpawn = 999;
-  }
-
-  // Coffee timeout: disappear after 8 seconds if not collected
-  if (coffeeVisible && elapsed - coffeeSpawnTime >= 8) {
-    coffeeVisible = false;
-  }
-
-  if (!acActive && elapsed >= acNextTime) {
-    showAutocomplete();
-    acNextTime += 25;
-  }
-
-  // Halfway
-  if (!halfwayDone && timeLeft === 30) {
-    halfwayDone = true;
-    var msg = pick(COMM.halfway).replace("{n}", totalWordCount.toString());
-    showCommentary(msg, "var(--yellow)");
-  }
-
-  // 10 seconds
-  if (!tenSecDone && timeLeft === 10) {
-    tenSecDone = true;
-    showCommentary(pick(COMM.tenSec), "var(--red)");
-  }
-
-  // Audience decay
-  checkAudienceDecay();
-
-  if (timeLeft <= 0) endGame();
-}
-
-// ================================================================
-// INPUT
-// ================================================================
-
+// ---- INPUT ----
 document.addEventListener("keydown", function(e) {
-  var k = e.key.toLowerCase();
-  // Allow arm movement on start screen for practice
-  var onStartScreen = document.getElementById("start-screen").style.display !== "none";
-  if (!gameActive && !onStartScreen) return;
-  if (k === "s" && !keysDown.s) { keysDown.s = true; leftHand.wristForce = -1; kp("key-s", true); if (onStartScreen) { initAudio(); playKeySound("s"); } }
-  if (k === "l" && !keysDown.l) { keysDown.l = true; leftHand.wristForce = 1; kp("key-l", true); if (onStartScreen) { initAudio(); playKeySound("l"); } }
-  if (k === "o" && !keysDown.o && !layoffActive) { keysDown.o = true; rightHand.wristForce = -1; kp("key-o", true); if (onStartScreen) { initAudio(); playKeySound("o"); } }
-  if (k === "p" && !keysDown.p && !layoffActive) { keysDown.p = true; rightHand.wristForce = 1; kp("key-p", true); if (onStartScreen) { initAudio(); playKeySound("p"); } }
-  // Dismiss autocomplete on any control key
-  if (acActive && (k==="s"||k==="l"||k==="o"||k==="p")) dismissAutocomplete();
+  if (mode === "start") { start(); return; }
+  if (mode === "over") { if (e.key==="Enter"||e.key===" ") start(); return; }
+  if (mode !== "play") return;
+
+  var k = e.key.toLowerCase(), ln = -1;
+  if (k==="s") ln=0; else if (k==="l") ln=1; else if (k==="o") ln=2; else if (k==="p") ln=3;
+  if (ln < 0) return;
   e.preventDefault();
+
+  // key visual
+  if (keyEls[ln]) { keyEls[ln].classList.add("on"); setTimeout(function(){keyEls[ln].classList.remove("on");},100); }
+
+  // find closest note in lane
+  var best=null, bDist=Infinity;
+  for (var i=0;i<notes.length;i++) {
+    var n=notes[i];
+    if (n.hit||n.miss||n.lane!==ln) continue;
+    var d=Math.abs(n.y - hitY);
+    if (d < bDist && d < GOOD_PX+20) { bDist=d; best=n; }
+  }
+  if (!best) return;
+
+  best.hit = true;
+  best.hTime = performance.now();
+
+  if (best.slop) {
+    doSlopHit(best);
+  } else {
+    if (Math.abs(best.y - hitY) <= PERFECT_PX) {
+      best.hType = "perfect"; doPerfect(best);
+    } else {
+      best.hType = "good"; doGood(best);
+    }
+  }
 });
 
 document.addEventListener("keyup", function(e) {
-  var k = e.key.toLowerCase();
-  if (k === "s") { keysDown.s = false; if (!keysDown.l) leftHand.wristForce = 0; kp("key-s", false); }
-  if (k === "l") { keysDown.l = false; if (!keysDown.s) leftHand.wristForce = 0; kp("key-l", false); }
-  if (k === "o") { keysDown.o = false; if (!keysDown.p) rightHand.wristForce = 0; kp("key-o", false); }
-  if (k === "p") { keysDown.p = false; if (!keysDown.o) rightHand.wristForce = 0; kp("key-p", false); }
+  var k=e.key.toLowerCase(),ln=-1;
+  if(k==="s")ln=0;else if(k==="l")ln=1;else if(k==="o")ln=2;else if(k==="p")ln=3;
+  if(ln>=0&&keyEls[ln]) keyEls[ln].classList.remove("on");
 });
 
-function kp(id, down) {
-  var el = document.getElementById(id);
-  if (el) { if (down) el.classList.add("pressed"); else el.classList.remove("pressed"); }
+// prevent space scroll
+document.addEventListener("keydown", function(e){ if(e.key===" " && mode==="play") e.preventDefault(); });
+
+// ---- HIT / MISS ----
+function mult() {
+  if (combo2>=80) return 8;
+  if (combo2>=40) return 4;
+  if (combo2>=20) return 3;
+  if (combo2>=10) return 2;
+  return 1;
+}
+function doPerfect(n) {
+  score2 += 100*mult(); combo2++; perfC++; totalH++; perfStr++; missStr=0;
+  if(combo2>maxC) maxC=combo2;
+  blogC.push({ch:n.ch,t:"c"}); updBlog(); sndPerfect();
+  feedback(n,"PERFECT","#fbbf24"); flash("rgba(251,191,36,0.08)");
+  chkComment(); if(combo2>0&&combo2%10===0) sndChord();
+}
+function doGood(n) {
+  score2 += 50*mult(); combo2++; goodC++; totalH++; perfStr=0; missStr=0;
+  if(combo2>maxC) maxC=combo2;
+  blogC.push({ch:n.ch,t:"c"}); updBlog(); sndGood();
+  feedback(n,"GOOD","#a3e635"); chkComment();
+  if(combo2>0&&combo2%10===0) sndChord();
+}
+function doMiss(n) {
+  score2 -= 10; combo2=0; missC++; totalH++; perfStr=0; missStr++;
+  var wc = "xzqjvkw";
+  blogC.push({ch:wc[Math.floor(Math.random()*wc.length)],t:"w"});
+  updBlog(); sndMiss(); feedback(n,"MISS","#e11d48"); chkComment();
+}
+function doSlopHit(n) {
+  score2 -= 200; combo2=0; slopHC++; totalH++; missStr=0; perfStr=0;
+  slopM = Math.min(100, slopM+25);
+  blogC.push({ch:" "+n.slopW+" ",t:"s"}); updBlog(); updSLAP(); sndSlopHit();
+  feedback(n,"SLOP!","#e11d48"); flash("rgba(225,29,72,0.15)");
+  addSlapNote(SLAP_NOTES[Math.floor(Math.random()*SLAP_NOTES.length)]);
+  chkComment();
+}
+function doSlopDodge(n) {
+  score2 += 200*mult(); slopDC++; sndSlopDodge();
+  feedback(n,"DODGED!","#22c55e"); flash("rgba(34,197,94,0.08)");
+  fireCom("slopDodge","Smart. That word has a restraining order from real writing.");
 }
 
-// ================================================================
-// GAME FLOW
-// ================================================================
-
-function startGame() {
-  document.getElementById("start-screen").style.display = "none";
-  document.getElementById("game-over").style.display = "none";
-  document.getElementById("hud").style.display = "flex";
-  document.getElementById("slap-panel").style.display = "block";
-  document.getElementById("audience-panel").style.display = "block";
-  document.getElementById("typed-wrap").style.display = "block";
-  document.getElementById("controls-hint").style.display = "flex";
-  document.getElementById("linkedin-overlay").style.opacity = "0";
-  document.getElementById("slap-panel").style.borderColor = "#2a1f3a";
-  document.getElementById("slap-panel").style.animation = "none";
-  document.getElementById("slap-fill").style.width = "0%";
-  document.getElementById("slap-fill").style.background = "var(--green)";
-  document.getElementById("slap-face").textContent = "\u{1F610}";
-  document.getElementById("slap-verdict").textContent = "";
-  document.getElementById("bpm-counter").style.opacity = "0";
-  document.getElementById("gremlin-face").style.opacity = "0";
-  document.getElementById("layoff-notif").classList.remove("visible");
-  document.getElementById("commentary-container").innerHTML = "";
-  document.getElementById("margin-notes").innerHTML = "";
-  document.getElementById("autocomplete-ghost").textContent = "";
-
-  typedText = "";
-  keysHit = 0;
-  slopCount = 0;
-  realWordCount = 0;
-  totalWordCount = 0;
-  lastRealWordTime = 0;
-  timeLeft = 60;
-  elapsed = 0;
-  hitKeys = [];
-  lastCommentaryTime = -10;
-  firstKeyDone = false;
-  halfwayDone = false;
-  tenSecDone = false;
-  gibberishRun = 0;
-  gibberishFired = false;
-  consecutiveSpaces = 0;
-  lastHitChar = "";
-  sameCharCount = 0;
-  slopTimestamps = [];
-  caughtPhrases = {};
-
-  catScheduled = 20 + Math.random() * 20;
-  catActive = false;
-  catDone = false;
-  catLastKey = -1;
-
-  layoffScheduled = 15 + Math.random() * 25;
-  layoffActive = false;
-  layoffDone = false;
-  layoffReturned = false;
-
-  coffeeVisible = false;
-  coffeeSpawnTime = 0;
-  coffeeStacks = 0;
-  coffeeEndTimes = [];
-  coffeeNextSpawn = 10 + Math.random() * 5;
-  speedMult = 1;
-  chaosMult = 1;
-  bpm = 72;
-  bpmDisplay = false;
-
-  acNextTime = 25;
-  acActive = false;
-  acPhrase = "";
-  acLastKeyTime = 0;
-
-  audience = 1;
-  tumbleweedDone = false;
-  updateAudience();
-
-  marginCount = 0;
-  slapLevel = 0;
-
-  document.getElementById("keys-hit").textContent = "0";
-  document.getElementById("word-count").textContent = "0";
-  document.getElementById("slop-count").textContent = "0";
-  document.getElementById("timer-display").textContent = "60";
-  document.getElementById("timer-display").className = "";
-  document.getElementById("high-score").textContent = highScore;
-  document.getElementById("typed-text").textContent = "";
-  document.getElementById("audience-count").textContent = "1";
-  document.getElementById("audience-sub").textContent = "";
-
-  initHands();
-  initAudio();
-  particles = [];
-  shakeAmount = 0;
-  hitStreak = 0;
-  lastHitTime = 0;
-  gameActive = true;
-
-  if (timerInterval) clearInterval(timerInterval);
-  timerInterval = setInterval(tick, 1000);
+// ---- FEEDBACK ----
+function feedback(n, txt, col) {
+  var el = document.createElement("div");
+  el.className = "hit-fb"; el.textContent = txt; el.style.color = col;
+  var x = (n.lane+0.5)*lW;
+  el.style.left = x+"px"; el.style.top = (hitY-20)+"px";
+  $laneArea.appendChild(el);
+  setTimeout(function(){el.remove();},700);
+}
+function flash(c) {
+  $flash.style.background=c; $flash.style.opacity="1";
+  setTimeout(function(){$flash.style.opacity="0";},150);
+}
+function showNotify(el) {
+  el.style.transition="none"; el.style.opacity="1";
+  setTimeout(function(){el.style.transition="opacity 0.5s";el.style.opacity="0";},800);
 }
 
-function endGame() {
-  gameActive = false;
-  clearInterval(timerInterval);
-
-  // Count real words in final text
-  var allWords = typedText.trim().split(/\s+/).filter(function(w) { return w.length > 0; });
-  var finalWordCount = allWords.length;
-  var finalRealWords = 0;
-  var finalSlopWords = 0;
-  for (var w = 0; w < allWords.length; w++) {
-    var lw = allWords[w].toLowerCase().replace(/[^a-z]/g, "");
-    if (REAL_SET[lw]) finalRealWords++;
-    if (SLOP_WORDS.indexOf(lw) >= 0) finalSlopWords++;
-  }
-
-  // Score
-  var score = Math.max(0, finalWordCount * 10 - slopCount * 25 + finalRealWords * 15);
-  if (score > highScore) {
-    highScore = score;
-    localStorage.setItem("slop-hs", highScore.toString());
-  }
-
-  // Grade (inverted: more slop = better grade)
-  var slopRatio = finalWordCount > 0 ? finalSlopWords / finalWordCount : 0;
-  var grade, gradeDesc, gradeColor;
-  if (finalWordCount === 0) {
-    grade = "?"; gradeDesc = "You wrote nothing. Somehow that's the most honest thing here.";
-    gradeColor = "var(--muted)";
-  } else if (slopRatio >= 0.8 || slopCount >= 8) {
-    grade = "S"; gradeDesc = "I showed this to ChatGPT and it apologized.";
-    gradeColor = "var(--pink)";
-  } else if (slopRatio >= 0.5 || slopCount >= 6) {
-    grade = "A"; gradeDesc = "Unreadable. Perfect. You're a VP now.";
-    gradeColor = "var(--red)";
-  } else if (slopRatio >= 0.3 || slopCount >= 4) {
-    grade = "B"; gradeDesc = "Now THAT'S some quality slop!";
-    gradeColor = "var(--orange)";
-  } else if (slopRatio >= 0.15 || slopCount >= 2) {
-    grade = "C"; gradeDesc = "Average corporate email vibes.";
-    gradeColor = "var(--yellow)";
-  } else if (slopCount >= 1) {
-    grade = "D"; gradeDesc = "Disappointing. I could almost understand some of this.";
-    gradeColor = "var(--muted)";
-  } else {
-    grade = "F"; gradeDesc = "Too coherent. Are you even trying?";
-    gradeColor = "var(--green)";
-  }
-
-  var gradeLetter = document.getElementById("grade-letter");
-  gradeLetter.textContent = grade;
-  gradeLetter.style.color = gradeColor;
-  document.getElementById("grade-desc").textContent = '"' + gradeDesc + '"';
-
-  // Situational comment
-  var sitComment = "";
-  if (finalWordCount === 0) {
-    sitComment = pick(COMM.endZero);
-  } else if (finalRealWords === 0 && finalSlopWords > 0) {
-    sitComment = pick(COMM.endOnlySlop).replace("{n}", finalWordCount.toString());
-  } else if (finalRealWords === 1) {
-    sitComment = pick(COMM.endOneWord);
-  } else if (finalRealWords >= 3) {
-    sitComment = pick(COMM.endCoherent);
-  } else if (slopCount > finalRealWords) {
-    sitComment = "You wrote " + finalWordCount + " words and said absolutely nothing. You're ready for middle management.";
-  } else {
-    sitComment = "Almost intelligible. Almost.";
-  }
-
-  // Review body
-  var reviewHTML = "<p>Dear Author,</p>" +
-    "<p>Thank you for your submission to Medium Premium. After careful review by the S.L.A.P. " +
-    "(Semantic Laziness And Posturing) editorial board:</p>" +
-    '<p class="stat-line">\u2022 Keys mashed: <strong>' + keysHit + "</strong></p>" +
-    '<p class="stat-line">\u2022 Words produced: <strong>' + finalWordCount + "</strong></p>" +
-    '<p class="stat-line">\u2022 Actual English words: <strong>' + finalRealWords + "</strong></p>" +
-    '<p class="stat-line">\u2022 Slop words detected: <strong>' + slopCount + "</strong></p>" +
-    '<p class="stat-line">\u2022 Live readers at close: <strong>' + audience + "</strong></p>" +
-    '<p class="stat-line">\u2022 Score: <strong>' + score + "</strong></p>" +
-    '<p class="situational">' + esc(sitComment) + "</p>";
-  document.getElementById("review-body").innerHTML = reviewHTML;
-
-  // Medium preview
-  var claps = 1 + Math.floor(Math.random() * 7);
-  var articleTitle = "Untitled Draft";
-  if (allWords.length > 0) {
-    articleTitle = allWords.slice(0, Math.min(5, allWords.length)).join(" ");
-    if (articleTitle.length > 40) articleTitle = articleTitle.slice(0, 40);
-    articleTitle = articleTitle.charAt(0).toUpperCase() + articleTitle.slice(1);
-  }
-  var bodyText = typedText || "(the page is intentionally left blank, as a statement)";
-
-  var mediumHTML =
-    '<div class="medium-bar"></div>' +
-    '<div class="medium-author-row">' +
-      '<span class="medium-avatar">\u{270B}\u{1F916}</span>' +
-      '<div><div class="medium-author-name">RagdollHands_42</div>' +
-      '<div class="medium-meta">3 min read \u00b7 Just now' +
-      '<span class="medium-badge">Member-only</span></div></div></div>' +
-    '<div class="medium-title">' + esc(articleTitle) + '</div>' +
-    '<div class="medium-body">' + esc(bodyText) + '</div>' +
-    '<div class="medium-footer">' +
-      '<span class="medium-claps">\u{1F44F} ' + claps + '</span>' +
-      '<span style="font-size:0.65rem;color:#999">Published to The Startup</span>' +
-    '</div>';
-  document.getElementById("medium-preview").innerHTML = mediumHTML;
-
-  // Show game over
-  document.getElementById("game-over").style.display = "flex";
-  document.getElementById("game-over").scrollTop = 0;
-  document.getElementById("hud").style.display = "none";
-  document.getElementById("slap-panel").style.display = "none";
-  document.getElementById("audience-panel").style.display = "none";
-  document.getElementById("controls-hint").style.display = "none";
-  document.getElementById("typed-wrap").style.display = "none";
-  document.getElementById("linkedin-overlay").style.opacity = "0";
-  document.getElementById("bpm-counter").style.opacity = "0";
-  document.getElementById("layoff-notif").classList.remove("visible");
+// ---- COMMENTARY ----
+function fireCom(k,t) {
+  if (commentF[k]) return;
+  commentF[k]=true;
+  $comment.textContent = '"'+t+'"';
+  $comment.style.opacity="1";
+  commentT=4;
+}
+function chkComment() {
+  if(perfC===1) fireCom("fp","Wait. That's a word. Everyone stay calm.");
+  if(combo2===10) fireCom("c10","You're too good at this. Suspicious.");
+  if(combo2===20) fireCom("c20","Are you using autocomplete? That's cheating. (It's also our whole thing.)");
+  if(missC===1) fireCom("fm","There it is. The human condition.");
+  if(slopHC===1) fireCom("fs","SLOP DETECTED. That word has been forwarded to the Hague.");
+  if(slopHC>=3) fireCom("ms","Your post has been accepted as a keynote.");
+  if(missStr>=5) fireCom("mstr","Your keyboard is filing a complaint.");
+  if(perfStr>=15) fireCom("pstr","This is dangerously close to a point.");
 }
 
-// ================================================================
-// INIT
-// ================================================================
+// ---- SLAP ----
+function updSLAP() {
+  $slapMeter.style.width = slopM+"%";
+  if (slopM>=75){ $slapFace.textContent="\uD83E\uDD2F"; $slapFace.style.transform="scale(1.3)"; }
+  else if(slopM>=50){ $slapFace.textContent="\uD83D\uDE24"; $slapFace.style.transform="scale(1.1)"; }
+  else if(slopM>=25){ $slapFace.textContent="\uD83D\uDE12"; $slapFace.style.transform="scale(1)"; }
+  else { $slapFace.textContent="\uD83D\uDE10"; $slapFace.style.transform="scale(1)"; }
+}
+function addSlapNote(t) {
+  var d=document.createElement("div"); d.textContent=t; d.style.marginTop="4px";
+  d.style.animation="floatUp 4s ease-out forwards";
+  $slapNotes.prepend(d);
+  while($slapNotes.children.length>4) $slapNotes.removeChild($slapNotes.lastChild);
+}
 
-document.getElementById("start-btn").addEventListener("click", function() { startGame(); });
-document.getElementById("restart-btn").addEventListener("click", function() { startGame(); });
-document.getElementById("linkedin-share-btn").addEventListener("click", function(e) {
-  e.preventDefault();
-  // Does nothing. As intended.
-});
+// ---- DOM UPDATES ----
+function updTarget() { $target.textContent = "TARGET: " + SENTENCES[sIdx]; }
+function updBlog() {
+  var h="";
+  for (var i=0;i<blogC.length;i++) {
+    var b=blogC[i], e=esc(b.ch);
+    if(b.t==="c") h+='<span class="c">'+e+'</span>';
+    else if(b.t==="w") h+='<span class="w">'+e+'</span>';
+    else h+='<span class="sl">'+e+'</span>';
+  }
+  h+='<span class="cur"></span>';
+  $blog.innerHTML=h;
+}
+function updHUD() {
+  $score.textContent = score2.toLocaleString();
+  if(combo2>=2) {
+    var m=mult();
+    $combo.textContent = combo2+"x combo"+(m>1?" (x"+m+")":"");
+    $combo.style.transform = "scale("+Math.min(1.5,1+combo2*0.005)+")";
+    $combo.style.color = combo2>=20?"#fbbf24":"#f97316";
+  } else { $combo.textContent=""; $combo.style.transform="scale(1)"; }
+  $timer.textContent = timeL.toFixed(1)+"s";
+  $timer.style.color = timeL<10?"#e11d48":"#888";
+  var ac = totalH>0?Math.round((perfC+goodC)/totalH*100):100;
+  $acc.textContent = ac+"% accuracy";
+  $counts.innerHTML = '<span style="color:#fbbf24">'+perfC+'P</span> <span style="color:#a3e635">'+goodC+'G</span> <span style="color:#e11d48">'+missC+'M</span>';
+}
 
-// Allow starting with Enter/Space from start screen
-document.addEventListener("keydown", function(e) {
-  if (!gameActive && document.getElementById("start-screen").style.display !== "none") {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      startGame();
+// ---- CANVAS RENDER ----
+function render() {
+  ctx.clearRect(0,0,cW,cH);
+  var now = performance.now();
+
+  // scrolling grid
+  var go = (now*0.05*(speed/140))%40;
+  ctx.strokeStyle="rgba(255,255,255,0.03)"; ctx.lineWidth=1;
+  for(var y=go;y<cH;y+=40){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cW,y);ctx.stroke(); }
+
+  // lane dividers
+  ctx.strokeStyle="rgba(255,255,255,0.06)";
+  for(var i=1;i<4;i++){ ctx.beginPath();ctx.moveTo(i*lW,0);ctx.lineTo(i*lW,cH);ctx.stroke(); }
+
+  // lane glow near hit zone
+  for(var i=0;i<4;i++){
+    var g=ctx.createLinearGradient(0,hitY-80,0,hitY+20);
+    g.addColorStop(0,"transparent"); g.addColorStop(0.5,COLORS_DIM[i]); g.addColorStop(1,"transparent");
+    ctx.fillStyle=g; ctx.fillRect(i*lW,hitY-80,lW,100);
+  }
+
+  // hit zone
+  ctx.fillStyle="rgba(255,255,255,0.07)"; ctx.fillRect(0,hitY-3,cW,6);
+  ctx.fillStyle="rgba(251,191,36,0.1)"; ctx.fillRect(0,hitY-PERFECT_PX,cW,PERFECT_PX*2);
+
+  // notes
+  for(var i=0;i<notes.length;i++){
+    var n=notes[i];
+    if(n.hit){
+      var el=(now-n.hTime)/300;
+      n.a=Math.max(0,1-el);
+      if(n.a<=0) continue;
     }
+    var cx=(n.lane+0.5)*lW, cy=n.y;
+    var dh=Math.abs(cy-hitY), prox=Math.max(0,1-dh/cH);
+    var sc=1+prox*0.15+Math.sin(now*0.006)*0.03;
+
+    ctx.save();
+    ctx.globalAlpha=n.a;
+    ctx.translate(cx,cy);
+    ctx.scale(sc,sc);
+
+    if(n.slop){
+      // slop bomb
+      var sp=1+Math.sin(now*0.01)*0.1;
+      ctx.scale(sp,sp);
+      ctx.shadowColor="#e11d48";
+      ctx.shadowBlur=20+Math.sin(now*0.008)*10;
+      var bw=lW*0.82, bh=36;
+      var gr=ctx.createLinearGradient(-bw/2,-bh/2,bw/2,bh/2);
+      gr.addColorStop(0,"#f97316"); gr.addColorStop(1,"#e11d48");
+      ctx.fillStyle=gr;
+      rr(ctx,-bw/2,-bh/2,bw,bh,8); ctx.fill();
+      ctx.strokeStyle="#fff"; ctx.lineWidth=2;
+      rr(ctx,-bw/2,-bh/2,bw,bh,8); ctx.stroke();
+      ctx.shadowBlur=0;
+      ctx.fillStyle="#fff";
+      ctx.font="bold 11px 'SF Mono',Menlo,monospace";
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText("\u2620 "+n.disp,0,0);
+    } else {
+      // normal note
+      var col=COLORS[n.lane];
+      if(dh<80){ ctx.shadowColor=col; ctx.shadowBlur=15; }
+      if(n.hit&&n.hType==="perfect"){ ctx.shadowColor="#fbbf24"; ctx.shadowBlur=30; }
+      var nw=lW*0.6, nh=32;
+      if(n.hit&&n.hType==="perfect") ctx.fillStyle="#fbbf24";
+      else if(n.hit&&n.hType==="good") ctx.fillStyle="#a3e635";
+      else if(n.miss) ctx.fillStyle="#e11d48";
+      else ctx.fillStyle=col;
+      rr(ctx,-nw/2,-nh/2,nw,nh,6); ctx.fill();
+      ctx.strokeStyle="rgba(255,255,255,0.25)"; ctx.lineWidth=1;
+      rr(ctx,-nw/2,-nh/2,nw,nh,6); ctx.stroke();
+      ctx.shadowBlur=0;
+      ctx.fillStyle="#fff";
+      ctx.font="bold 15px 'SF Mono',Menlo,monospace";
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText(n.disp,0,1);
+    }
+    ctx.restore();
   }
-});
+}
 
-window.addEventListener("resize", resize);
-resize();
-initHands();
-requestAnimationFrame(frame);
+function rr(c,x,y,w,h,r){
+  c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);
+  c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();
+}
 
+// ---- END GAME ----
+function end() {
+  mode = "over";
+  cancelAnimationFrame(raf);
+  $play.style.display="none";
+  $over.style.display="flex";
+
+  var ac = totalH>0?Math.round((perfC+goodC)/totalH*100):100;
+  var grade,gLbl,gCol;
+  if(slopHC>=5){ grade="S+"; gLbl="Congratulations. You're ready for middle management."; gCol="#e11d48"; }
+  else if(ac>=95&&slopHC===0){ grade="F"; gLbl="Too coherent. Suspiciously human."; gCol="#22c55e"; }
+  else if(ac>=80){ grade="D"; gLbl="Almost readable. Try harder to be worse."; gCol="#a3e635"; }
+  else if(ac>=60){ grade="C"; gLbl="Getting there. The typos add character."; gCol="#eab308"; }
+  else if(ac>=40){ grade="B"; gLbl="Now we're cooking with buzzwords."; gCol="#f97316"; }
+  else if(ac>=20){ grade="A"; gLbl="Corporate-ready. Ship it to the blog."; gCol="#ec4899"; }
+  else { grade="S"; gLbl="I showed this to ChatGPT and it apologized."; gCol="#a855f7"; }
+
+  document.getElementById("go-grade").textContent=grade;
+  document.getElementById("go-grade").style.color=gCol;
+  document.getElementById("go-grade-label").textContent=gLbl;
+
+  var stats = [
+    {v:score2.toLocaleString(),l:"SCORE",c:"#a855f7"},
+    {v:ac+"%",l:"ACCURACY",c:"#06b6d4"},
+    {v:perfC,l:"PERFECT",c:"#fbbf24"},
+    {v:goodC,l:"GOOD",c:"#a3e635"},
+    {v:missC,l:"MISS",c:"#e11d48"},
+    {v:maxC+"x",l:"MAX COMBO",c:"#f97316"},
+    {v:slopHC,l:"SLOP HITS",c:"#e11d48"},
+    {v:slopDC,l:"SLOP DODGED",c:"#22c55e"}
+  ];
+  document.getElementById("go-stats").innerHTML = stats.map(function(s){
+    return '<div class="go-stat"><div class="val" style="color:'+s.c+'">'+s.v+'</div><div class="lbl">'+s.l+'</div></div>';
+  }).join("");
+
+  var gc="";
+  if(ac>=90&&slopHC===0) gc="Wait. This almost makes sense. Are you cheating?";
+  else if(ac<30) gc="Draft saved as untitled_final_FINAL2.docx";
+  else if(slopHC>=4) gc="Congratulations. You're ready for middle management.";
+  else if(missC>perfC) gc="Your keyboard is filing a complaint with OSHA.";
+  else if(maxC>=20) gc="That combo was dangerously close to competence.";
+  else gc="Another masterpiece for the content mines.";
+  document.getElementById("go-commentary").textContent='"'+gc+'"';
+
+  var bh='<div class="medium-hdr">Published on Medium &middot; 0 min read</div><div class="author">by AI Blog Bot 3000</div><p>';
+  for(var i=0;i<blogC.length;i++){
+    var b=blogC[i],e2=esc(b.ch);
+    if(b.t==="c") bh+='<span class="c-correct">'+e2+'</span>';
+    else if(b.t==="w") bh+='<span class="c-wrong">'+e2+'</span>';
+    else bh+='<span class="c-slop">'+e2+'</span>';
+  }
+  bh+='</p>';
+  var claps=Math.max(0,Math.floor(score2/100));
+  bh+='<div class="claps">\uD83D\uDC4F '+claps+' clap'+(claps!==1?'s':'')+'</div>';
+  document.getElementById("go-blog").innerHTML=bh;
+
+  var hs=parseInt(localStorage.getItem("slop_rhythm_hs")||"0");
+  var $hs=document.getElementById("go-hs");
+  if(score2>hs){ hs=score2; localStorage.setItem("slop_rhythm_hs",hs.toString());
+    $hs.textContent="NEW HIGH SCORE! "+hs.toLocaleString(); $hs.style.color="#fbbf24";
+  } else { $hs.textContent="High score: "+hs.toLocaleString(); $hs.style.color="#666"; }
+}
+
+document.getElementById("go-btn").addEventListener("click", start);
+window.addEventListener("resize", function(){ if(mode==="play") resize(); });
 })();
 </script>
 </body>
