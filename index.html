@@ -3,949 +3,738 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SLOP - The AI Blog Writing Simulator</title>
+<title>SLOP or NOT</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #0a0612;
-  color: #e0e0e0;
-  font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
-  overflow: hidden;
-  height: 100vh;
-  width: 100vw;
-  user-select: none;
-}
-#game-container {
-  width: 100vw;
-  height: 100vh;
-  position: relative;
-}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;overflow:hidden;height:100vh;width:100vw;user-select:none}
+canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100}
 
-/* ===== START SCREEN ===== */
-#start-screen {
-  position: absolute;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #0a0612;
-}
-#start-screen h1 {
-  font-size: clamp(60px, 12vw, 140px);
-  font-weight: 900;
-  letter-spacing: 0.3em;
-  background: linear-gradient(135deg, #a855f7, #ec4899, #06b6d4, #f97316);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 8px;
-  animation: titlePulse 2s ease-in-out infinite;
-}
-@keyframes titlePulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-}
-#start-screen .subtitle {
-  font-size: clamp(14px, 2vw, 20px);
-  color: #888;
-  margin-bottom: 6px;
-}
-#start-screen .tagline {
-  font-size: clamp(11px, 1.5vw, 15px);
-  color: #666;
-  font-style: italic;
-  margin-bottom: 40px;
-}
-.lane-legend {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 40px;
-  flex-wrap: wrap;
-  justify-content: center;
-  padding: 0 20px;
-}
-.lane-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: clamp(11px, 1.3vw, 14px);
-}
-.key-badge {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 16px;
-  color: #fff;
-}
-.lane-legend-item:nth-child(1) .key-badge { background: #a855f7; }
-.lane-legend-item:nth-child(2) .key-badge { background: #ec4899; }
-.lane-legend-item:nth-child(3) .key-badge { background: #06b6d4; }
-.lane-legend-item:nth-child(4) .key-badge { background: #f97316; }
-.start-prompt {
-  font-size: clamp(14px, 2vw, 18px);
-  color: #a855f7;
-  animation: blink 1.2s ease-in-out infinite;
-}
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
+.screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;width:100vw;position:absolute;top:0;left:0}
+.screen.active{display:flex}
 
-/* ===== GAMEOVER ===== */
-#gameover-screen {
-  position: absolute;
-  inset: 0;
-  z-index: 100;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  background: #0a0612;
-  overflow-y: auto;
-  padding: 30px 20px;
-}
-#gameover-screen h2 {
-  font-size: clamp(28px, 5vw, 48px);
-  font-weight: 900;
-  margin-bottom: 10px;
-  color: #a855f7;
-}
-.go-grade {
-  font-size: clamp(48px, 8vw, 80px);
-  font-weight: 900;
-  margin-bottom: 4px;
-}
-.go-grade-label {
-  font-size: clamp(12px, 1.6vw, 16px);
-  color: #888;
-  margin-bottom: 20px;
-  text-align: center;
-}
-.go-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 10px;
-  max-width: 600px;
-  width: 100%;
-  margin-bottom: 20px;
-}
-.go-stat {
-  background: #1a1025;
-  border-radius: 8px;
-  padding: 10px;
-  text-align: center;
-}
-.go-stat .val { font-size: 22px; font-weight: 900; }
-.go-stat .lbl { font-size: 10px; color: #888; margin-top: 2px; }
-.go-blog {
-  max-width: 600px;
-  width: 100%;
-  background: #faf9f7;
-  color: #222;
-  border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 20px;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 14px;
-  line-height: 1.7;
-}
-.go-blog .medium-hdr { text-align: center; color: #888; font-size: 11px; margin-bottom: 8px; font-family: inherit; }
-.go-blog .author { text-align: center; margin-bottom: 14px; font-size: 12px; color: #666; }
-.go-blog .claps { text-align: center; margin-top: 14px; font-size: 13px; color: #999; }
-.go-blog .c-correct { color: #222; }
-.go-blog .c-wrong { color: #e11d48; text-decoration: underline wavy #e11d48; }
-.go-blog .c-slop { color: #e11d48; font-weight: 700; text-decoration: underline wavy #e11d48; font-style: italic; }
-.go-commentary {
-  max-width: 600px;
-  width: 100%;
-  text-align: center;
-  font-size: clamp(13px, 1.6vw, 16px);
-  color: #ec4899;
-  font-style: italic;
-  margin-bottom: 20px;
-}
-.go-btn {
-  background: linear-gradient(135deg, #a855f7, #ec4899);
-  color: #fff;
-  border: none;
-  padding: 14px 40px;
-  border-radius: 8px;
-  font-size: 18px;
-  font-weight: 900;
-  font-family: inherit;
-  cursor: pointer;
-  letter-spacing: 0.1em;
-  margin-bottom: 10px;
-  transition: transform 0.1s;
-}
-.go-btn:hover { transform: scale(1.05); }
-.go-btn:active { transform: scale(0.97); }
-.go-hs { font-size: 12px; color: #666; margin-bottom: 30px; }
+/* START */
+#start-screen .title{font-size:72px;font-weight:800;letter-spacing:-2px;margin-bottom:8px}
+#start-screen .title .slop{color:#ff6b35}
+#start-screen .title .or{color:#8b949e}
+#start-screen .title .not{color:#00e5ff}
+#start-screen .subtitle{font-size:20px;color:#8b949e;margin-bottom:40px}
+#start-screen .instructions{font-size:16px;color:#c9d1d9;line-height:1.8;text-align:center;margin-bottom:48px;max-width:520px}
+#start-screen .instructions kbd{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:2px 8px;font-family:inherit;font-weight:600}
+#start-screen .instructions .key-s{color:#ff6b35}
+#start-screen .instructions .key-n{color:#00e5ff}
+#start-screen .start-prompt{font-size:18px;color:#8b949e;animation:pulse-glow 2s ease-in-out infinite}
+#start-screen .high-score-display{position:absolute;top:24px;right:32px;font-size:14px;color:#8b949e}
+@keyframes pulse-glow{0%,100%{opacity:.5}50%{opacity:1}}
 
-/* ===== GAMEPLAY ===== */
-#gameplay {
-  display: none;
-  flex-direction: column;
-  height: 100vh;
-  width: 100vw;
-}
-#top-area {
-  height: 120px;
-  min-height: 90px;
-  padding: 8px 16px;
-  display: flex;
-  gap: 12px;
-  background: #0a0612;
-  border-bottom: 1px solid #1a1025;
-  z-index: 10;
-  position: relative;
-}
-#blog-area { flex: 1; overflow: hidden; }
-#target-sentence {
-  font-size: 12px;
-  color: #444;
-  margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-#blog-output {
-  font-size: 14px;
-  line-height: 1.5;
-  word-wrap: break-word;
-  overflow: hidden;
-  max-height: 72px;
-}
-#blog-output .c { color: #06b6d4; }
-#blog-output .w { color: #e11d48; }
-#blog-output .sl { color: #f97316; font-weight: 700; text-decoration: underline wavy #f97316; }
-#blog-output .cur {
-  display: inline-block; width: 2px; height: 14px;
-  background: #06b6d4; margin-left: 1px;
-  animation: blink 0.6s ease-in-out infinite;
-  vertical-align: text-bottom;
-}
-#hud-area {
-  width: 170px;
-  min-width: 150px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-#hud-score {
-  font-size: clamp(20px, 3vw, 30px);
-  font-weight: 900;
-  background: linear-gradient(135deg, #a855f7, #ec4899);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-#hud-combo { font-size: 15px; font-weight: 700; color: #f97316; min-height: 20px; transition: transform 0.1s; }
-#hud-timer { font-size: 14px; color: #888; }
-#hud-accuracy { font-size: 12px; color: #666; }
-#hud-counts { font-size: 11px; color: #555; text-align: right; }
+/* GAME */
+#game-screen{padding:24px}
+.game-hud{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:900px;padding:0 16px;position:absolute;top:24px}
+.hud-left{display:flex;gap:24px;align-items:center}
+.hud-right{display:flex;gap:24px;align-items:center}
+.score-display{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.combo-display{font-size:18px;font-weight:600;color:#ff6b35;transition:transform .15s ease}
+.hearts{font-size:22px;letter-spacing:4px}
+.hearts.danger{animation:heart-pulse .4s ease-in-out infinite}
+@keyframes heart-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+.round-display{font-size:14px;color:#8b949e}
 
-/* Lane area */
-#lane-area { flex: 1; position: relative; display: flex; overflow: hidden; }
-#lane-canvas { display: block; }
-#slap-sidebar {
-  width: 130px;
-  min-width: 110px;
-  background: #0d0818;
-  border-left: 1px solid #1a1025;
-  padding: 10px 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  overflow: hidden;
-}
-#slap-label { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; color: #a855f7; }
-#slap-face { font-size: 34px; transition: transform 0.2s; }
-#slap-meter-wrap { width: 100%; height: 10px; background: #1a1025; border-radius: 5px; overflow: hidden; }
-#slap-meter { height: 100%; width: 0%; background: linear-gradient(90deg, #22c55e, #eab308, #e11d48); border-radius: 5px; transition: width 0.3s; }
-#slap-notes { font-size: 10px; color: #e11d48; text-align: center; min-height: 40px; overflow: hidden; }
+.timer-container{width:100%;max-width:700px;height:6px;background:#21262d;border-radius:3px;position:absolute;top:80px;overflow:hidden}
+.timer-bar{height:100%;background:#00e5ff;border-radius:3px;transition:background .3s;width:100%}
+.timer-bar.warning{background:#f0883e}
+.timer-bar.danger{background:#f85149}
 
-/* Overlays */
-#commentary {
-  position: absolute;
-  bottom: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: clamp(13px, 1.8vw, 17px);
-  color: #ec4899;
-  font-style: italic;
-  text-align: center;
-  pointer-events: none;
-  z-index: 20;
-  opacity: 0;
-  transition: opacity 0.3s;
-  max-width: 500px;
-  text-shadow: 0 0 20px rgba(236, 72, 153, 0.5);
-}
-#flash-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 15;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.hit-fb {
-  position: absolute;
-  font-weight: 900;
-  font-size: 15px;
-  pointer-events: none;
-  z-index: 20;
-  animation: floatUp 0.7s ease-out forwards;
-}
-@keyframes floatUp {
-  0% { opacity: 1; transform: translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateY(-40px) scale(0.8); }
-}
-.notify {
-  position: absolute;
-  top: 45%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-weight: 900;
-  pointer-events: none;
-  z-index: 25;
-  opacity: 0;
-}
-#speed-notify { font-size: 28px; color: #f97316; text-shadow: 0 0 30px rgba(249, 115, 22, 0.6); }
-#next-notify { font-size: 22px; color: #06b6d4; text-shadow: 0 0 30px rgba(6, 182, 212, 0.6); top: 40%; }
+.sentence-area{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;max-width:800px;text-align:center;padding:0 32px}
+.sentence-text{font-size:28px;font-weight:500;line-height:1.5;opacity:0;transform:translateY(20px);transition:opacity .3s ease,transform .3s ease}
+.sentence-text.visible{opacity:1;transform:translateY(0)}
+.sentence-text.exit{opacity:0;transform:translateY(-20px)}
 
-#lane-keys {
-  position: absolute;
-  bottom: 6px;
-  left: 0;
-  display: flex;
-  z-index: 12;
-  pointer-events: none;
-}
-.lk {
-  text-align: center;
-  font-size: 20px;
-  font-weight: 900;
-  opacity: 0.25;
-  transition: opacity 0.08s, transform 0.08s;
-}
-.lk.on { opacity: 1; transform: scale(1.2); }
-.lk-0 { color: #a855f7; }
-.lk-1 { color: #ec4899; }
-.lk-2 { color: #06b6d4; }
-.lk-3 { color: #f97316; }
+.result-overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s;z-index:50}
+.result-overlay.show{opacity:1}
+.result-verdict{font-size:48px;font-weight:800;margin-bottom:8px}
+.result-verdict.correct{color:#3fb950}
+.result-verdict.wrong{color:#f85149}
+.result-category{font-size:16px;color:#8b949e;margin-bottom:12px}
+.result-slap{font-size:14px;font-weight:600;color:#ff6b35;margin-bottom:12px}
+.result-quip{font-size:15px;color:#c9d1d9;max-width:550px;font-style:italic;margin-bottom:8px}
+
+.streak-announce{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:36px;font-weight:800;color:#ff6b35;opacity:0;pointer-events:none;z-index:200;text-shadow:0 0 30px rgba(255,107,53,.5);white-space:nowrap}
+
+.key-hints{display:flex;gap:64px;position:absolute;bottom:40px}
+.key-hint{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600}
+.key-hint kbd{width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:22px;font-weight:700;border:2px solid}
+.key-hint.slop kbd{border-color:#ff6b35;color:#ff6b35;background:rgba(255,107,53,.1)}
+.key-hint.slop span{color:#ff6b35}
+.key-hint.not kbd{border-color:#00e5ff;color:#00e5ff;background:rgba(0,229,255,.1)}
+.key-hint.not span{color:#00e5ff}
+
+.slop-meter{position:absolute;right:24px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
+.slop-meter-label{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;writing-mode:vertical-rl;transform:rotate(180deg)}
+.slop-meter-bar{width:8px;height:160px;background:#21262d;border-radius:4px;position:relative;overflow:hidden}
+.slop-meter-fill{position:absolute;bottom:0;width:100%;background:linear-gradient(to top,#00e5ff,#ff6b35);border-radius:4px;transition:height .5s ease}
+.slop-meter-pct{font-size:13px;font-weight:600;color:#8b949e}
+
+.speed-notify{position:fixed;top:100px;left:50%;transform:translateX(-50%);font-size:28px;font-weight:800;color:#f0883e;opacity:0;pointer-events:none;z-index:200}
+
+/* GAME OVER */
+#gameover-screen{padding:32px}
+.go-card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:40px 48px;max-width:520px;width:100%}
+.go-header{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
+.go-title{font-size:32px;font-weight:800;margin-bottom:24px}
+.go-grade{font-size:80px;font-weight:800;text-align:center;margin-bottom:16px}
+.go-grade.s-tier{color:#3fb950}.go-grade.a-tier{color:#00e5ff}.go-grade.b-tier{color:#58a6ff}.go-grade.c-tier{color:#f0883e}.go-grade.d-tier{color:#ff6b35}.go-grade.f-tier{color:#f85149}
+.go-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin-bottom:24px}
+.go-stat{display:flex;flex-direction:column}
+.go-stat-label{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:1px}
+.go-stat-value{font-size:22px;font-weight:700}
+.go-comment{font-size:15px;color:#c9d1d9;font-style:italic;margin-bottom:24px;line-height:1.5;border-left:3px solid #30363d;padding-left:16px}
+.go-new-high{font-size:14px;font-weight:600;color:#3fb950;margin-bottom:16px;text-align:center}
+.go-buttons{display:flex;gap:16px;justify-content:center}
+.go-btn{padding:12px 28px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;border:none;transition:transform .1s}
+.go-btn:active{transform:scale(.96)}
+.go-btn.play-again{background:#ff6b35;color:#fff}
+.go-btn.share{background:#21262d;color:#c9d1d9;border:1px solid #30363d}
+
+.shake{animation:screen-shake .2s ease}
+@keyframes screen-shake{0%,100%{transform:translate(0)}10%{transform:translate(-8px,4px)}20%{transform:translate(6px,-4px)}30%{transform:translate(-4px,6px)}40%{transform:translate(4px,-2px)}50%{transform:translate(-2px,4px)}}
+.flash-correct{animation:flash-green .3s ease}
+@keyframes flash-green{0%{background:#0d1117}15%{background:rgba(63,185,80,.15)}100%{background:#0d1117}}
+.flash-wrong{animation:flash-red .3s ease}
+@keyframes flash-red{0%{background:#0d1117}15%{background:rgba(248,81,73,.2)}100%{background:#0d1117}}
+
+.the-cat{position:fixed;bottom:12px;font-size:28px;z-index:300;pointer-events:none;opacity:0}
 </style>
 </head>
 <body>
-<div id="game-container">
 
-  <div id="start-screen">
-    <h1>SLOP</h1>
-    <div class="subtitle">The AI Blog Writing Simulator</div>
-    <div class="tagline">Guitar Hero, but you're writing the worst blog post ever.</div>
-    <div class="lane-legend">
-      <div class="lane-legend-item"><div class="key-badge">S</div> Left keys (QWERTASDFGZXCV)</div>
-      <div class="lane-legend-item"><div class="key-badge">L</div> Right keys (YUIHJKBNM)</div>
-      <div class="lane-legend-item"><div class="key-badge">O</div> Space &amp; punctuation</div>
-      <div class="lane-legend-item"><div class="key-badge">P</div> DODGE THE SLOP</div>
-    </div>
-    <div class="start-prompt">Press any key to start</div>
+<canvas id="particles"></canvas>
+
+<div id="start-screen" class="screen active">
+  <div class="high-score-display" id="start-high-score"></div>
+  <div class="title"><span class="slop">SLOP</span> <span class="or">or</span> <span class="not">NOT</span></div>
+  <div class="subtitle">Can you tell AI garbage from real writing?</div>
+  <div class="instructions">
+    Press <kbd class="key-s">S</kbd> if it's SLOP. Press <kbd class="key-n">N</kbd> if it's NOT.<br>
+    Don't let the buzzwords fool you.
   </div>
-
-  <div id="gameover-screen">
-    <h2>GAME OVER</h2>
-    <div class="go-grade" id="go-grade"></div>
-    <div class="go-grade-label" id="go-grade-label"></div>
-    <div class="go-stats" id="go-stats"></div>
-    <div class="go-commentary" id="go-commentary"></div>
-    <div class="go-blog" id="go-blog"></div>
-    <button class="go-btn" id="go-btn">SLOP AGAIN</button>
-    <div class="go-hs" id="go-hs"></div>
-  </div>
-
-  <div id="gameplay">
-    <div id="top-area">
-      <div id="blog-area">
-        <div id="target-sentence"></div>
-        <div id="blog-output"></div>
-      </div>
-      <div id="hud-area">
-        <div id="hud-score">0</div>
-        <div id="hud-combo"></div>
-        <div id="hud-timer">60.0s</div>
-        <div id="hud-accuracy">100%</div>
-        <div id="hud-counts"></div>
-      </div>
-    </div>
-    <div id="lane-area">
-      <canvas id="lane-canvas"></canvas>
-      <div id="slap-sidebar">
-        <div id="slap-label">S.L.A.P.</div>
-        <div id="slap-face">&#x1F610;</div>
-        <div id="slap-meter-wrap"><div id="slap-meter"></div></div>
-        <div id="slap-notes"></div>
-      </div>
-      <div id="lane-keys"></div>
-    </div>
-    <div id="commentary"></div>
-    <div id="flash-overlay"></div>
-    <div id="speed-notify" class="notify">SPEED UP!</div>
-    <div id="next-notify" class="notify">NEXT SENTENCE</div>
-  </div>
-
+  <div class="start-prompt">Press SPACE to start</div>
 </div>
 
+<div id="game-screen" class="screen">
+  <div class="game-hud">
+    <div class="hud-left">
+      <div class="score-display" id="score">0</div>
+      <div class="combo-display" id="combo"></div>
+    </div>
+    <div class="hud-right">
+      <div class="round-display" id="round-num">Round 1</div>
+      <div class="hearts" id="hearts"></div>
+    </div>
+  </div>
+  <div class="timer-container"><div class="timer-bar" id="timer-bar"></div></div>
+  <div class="sentence-area">
+    <div class="sentence-text" id="sentence-text"></div>
+  </div>
+  <div class="result-overlay" id="result-overlay">
+    <div class="result-verdict" id="result-verdict"></div>
+    <div class="result-category" id="result-category"></div>
+    <div class="result-slap" id="result-slap"></div>
+    <div class="result-quip" id="result-quip"></div>
+  </div>
+  <div class="key-hints">
+    <div class="key-hint slop"><kbd>S</kbd><span>SLOP</span></div>
+    <div class="key-hint not"><kbd>N</kbd><span>NOT SLOP</span></div>
+  </div>
+  <div class="slop-meter">
+    <div class="slop-meter-pct" id="slop-pct">0%</div>
+    <div class="slop-meter-bar"><div class="slop-meter-fill" id="slop-fill"></div></div>
+    <div class="slop-meter-label">SLOP-O-METER</div>
+  </div>
+</div>
+
+<div id="gameover-screen" class="screen">
+  <div class="go-card">
+    <div class="go-header">Content Quality Review - Q1 2026</div>
+    <div class="go-title">Performance Review</div>
+    <div class="go-grade" id="go-grade"></div>
+    <div class="go-stats">
+      <div class="go-stat"><span class="go-stat-label">Final Score</span><span class="go-stat-value" id="go-score"></span></div>
+      <div class="go-stat"><span class="go-stat-label">Highest Combo</span><span class="go-stat-value" id="go-combo"></span></div>
+      <div class="go-stat"><span class="go-stat-label">Slop Detection Rate</span><span class="go-stat-value" id="go-detect"></span></div>
+      <div class="go-stat"><span class="go-stat-label">False Positive Rate</span><span class="go-stat-value" id="go-false"></span></div>
+      <div class="go-stat"><span class="go-stat-label">Sentences Reviewed</span><span class="go-stat-value" id="go-reviewed"></span></div>
+      <div class="go-stat"><span class="go-stat-label">Accuracy</span><span class="go-stat-value" id="go-accuracy"></span></div>
+    </div>
+    <div class="go-comment" id="go-comment"></div>
+    <div class="go-new-high" id="go-new-high" style="display:none">NEW HIGH SCORE!</div>
+    <div class="go-buttons">
+      <button class="go-btn play-again" id="btn-again">PLAY AGAIN</button>
+      <button class="go-btn share" id="btn-share">SHARE SCORE</button>
+    </div>
+  </div>
+</div>
+
+<div class="streak-announce" id="streak-announce"></div>
+<div class="speed-notify" id="speed-notify">FASTER!</div>
+<div class="the-cat" id="the-cat">&#x1F408;</div>
+
 <script>
-(function() {
-"use strict";
-
-// ---- DATA ----
+/* ===== SENTENCE DATABASE (85 sentences) ===== */
 var SENTENCES = [
-  "open source is good and we should fund it more",
-  "hello world this is my first blog post please clap",
-  "i am definitely a human writing this and not a robot",
-  "the code works on my machine and that is good enough",
-  "git push force to main on friday what could go wrong",
-  "i deleted the production database but it was an accident",
-  "my pull request has been open for three months please review",
-  "the meeting could have been an email but here we are"
+// ---- CLEAR SLOP (40) ----
+{text:"We're excited to leverage our synergistic capabilities to drive transformative outcomes across the ecosystem.",isSlop:true,category:"corporate",difficulty:1},
+{text:"This paradigm-shifting solution represents a fundamental reimagining of how we approach innovation.",isSlop:true,category:"press release",difficulty:1},
+{text:"At the intersection of technology and human potential, we're building something truly remarkable.",isSlop:true,category:"thought leadership",difficulty:1},
+{text:"We don't just build products -- we craft experiences that empower communities to thrive.",isSlop:true,category:"corporate",difficulty:1},
+{text:"Our north star has always been delivering best-in-class solutions that move the needle.",isSlop:true,category:"corporate",difficulty:1},
+{text:"This isn't just an update -- it's a love letter to our community.",isSlop:true,category:"blog post",difficulty:1},
+{text:"We're humbled and excited to announce this game-changing milestone.",isSlop:true,category:"press release",difficulty:1},
+{text:"Delving into the tapestry of open source, we find a rich landscape of opportunity.",isSlop:true,category:"thought leadership",difficulty:1},
+{text:"It's worth noting that this fundamentally changes the paradigm.",isSlop:true,category:"thought leadership",difficulty:1},
+{text:"Here's the thing: we're not just disrupting -- we're reimagining disruption itself.",isSlop:true,category:"thought leadership",difficulty:1},
+{text:"We're disrupting disruption by innovating innovation through a lens of innovative disruption.",isSlop:true,category:"thought leadership",difficulty:1},
+{text:"Think of it as Uber for your paradigms.",isSlop:true,category:"pitch deck",difficulty:1},
+{text:"This isn't just a product launch -- it's a movement, a mission, a moment, and a Monday.",isSlop:true,category:"press release",difficulty:1},
+{text:"In conclusion, I'd like to summarize by restating my key takeaway from this summary.",isSlop:true,category:"thought leadership",difficulty:1},
+{text:"The result? Game-changing. The impact? Transformative. The hotel? Trivago.",isSlop:true,category:"blog post",difficulty:1},
+{text:"Our holistic, end-to-end platform unlocks unprecedented value for stakeholders at every level.",isSlop:true,category:"corporate",difficulty:1},
+{text:"We're on a journey to redefine what's possible in this space.",isSlop:true,category:"corporate",difficulty:2},
+{text:"This represents a sea change in how the industry thinks about scalable impact.",isSlop:true,category:"press release",difficulty:2},
+{text:"By harnessing the power of AI, we're streamlining workflows to deliver robust, next-gen solutions.",isSlop:true,category:"corporate",difficulty:1},
+{text:"Our team is passionate about building tools that empower developers to do their best work.",isSlop:true,category:"blog post",difficulty:2},
+{text:"We stand at the precipice of a new era in developer productivity.",isSlop:true,category:"thought leadership",difficulty:1},
+{text:"Here's where it gets interesting: the synergies are already starting to compound.",isSlop:true,category:"thought leadership",difficulty:1},
+{text:"Let's unpack what this means for the future of collaborative innovation.",isSlop:true,category:"blog post",difficulty:1},
+{text:"Imagine a world where every developer has access to cutting-edge AI capabilities.",isSlop:true,category:"pitch deck",difficulty:1},
+{text:"It bears mentioning that our commitment to excellence remains unwavering.",isSlop:true,category:"corporate",difficulty:1},
+{text:"We're not just writing code -- we're authoring the next chapter of human progress.",isSlop:true,category:"thought leadership",difficulty:1},
+{text:"This milestone underscores our relentless focus on delivering transformative developer experiences.",isSlop:true,category:"press release",difficulty:2},
+{text:"Notably, our platform has achieved remarkable traction among enterprise stakeholders.",isSlop:true,category:"corporate",difficulty:1},
+{text:"Despite its challenges, this initiative has quietly become the backbone of our innovation strategy.",isSlop:true,category:"corporate",difficulty:2},
+{text:"From ideation to deployment, we're reimagining the entire developer lifecycle.",isSlop:true,category:"pitch deck",difficulty:2},
+{text:"Our deeply integrated, AI-native approach empowers teams to unlock their full creative potential.",isSlop:true,category:"corporate",difficulty:1},
+{text:"The future of software isn't just automated -- it's deeply human, profoundly connected, and endlessly scalable.",isSlop:true,category:"thought leadership",difficulty:2},
+{text:"We're building bridges between communities, one API at a time.",isSlop:true,category:"blog post",difficulty:2},
+{text:"This serves as a testament to the power of cross-functional alignment.",isSlop:true,category:"corporate",difficulty:1},
+{text:"Our mission is to democratize innovation by making cutting-edge tools accessible to everyone, everywhere.",isSlop:true,category:"pitch deck",difficulty:2},
+{text:"We believe in the transformative power of open collaboration to drive meaningful, lasting change.",isSlop:true,category:"blog post",difficulty:2},
+{text:"It's not about the technology. It's about the people. It's about the impact. It's about the journey.",isSlop:true,category:"thought leadership",difficulty:1},
+{text:"We've entered a new chapter -- one defined by purposeful innovation and stakeholder-centric design.",isSlop:true,category:"corporate",difficulty:2},
+{text:"This is more than a feature request. This is a mandate for the future.",isSlop:true,category:"blog post",difficulty:2},
+{text:"Our AI-first strategy positions us to capture asymmetric upside in adjacent verticals.",isSlop:true,category:"pitch deck",difficulty:2},
+
+// ---- CLEAR NOT SLOP (30) ----
+{text:"The server was down for 47 minutes because someone deployed to prod on a Friday.",isSlop:false,category:"incident report",difficulty:1},
+{text:"This function returns null when the input array is empty, which is wrong.",isSlop:false,category:"code review",difficulty:1},
+{text:"We spent three weeks on this feature and then cut it. Sometimes that's the right call.",isSlop:false,category:"meeting notes",difficulty:1},
+{text:"The test suite takes 11 minutes. That's too slow. We're fixing it.",isSlop:false,category:"engineering update",difficulty:1},
+{text:"I don't know why this works but it does and I'm afraid to change it.",isSlop:false,category:"code comment",difficulty:1},
+{text:"Updated the regex. Previous one missed edge cases with unicode characters.",isSlop:false,category:"commit message",difficulty:1},
+{text:"Meeting notes: agreed to deprecate the v1 API by June. No objections.",isSlop:false,category:"meeting notes",difficulty:1},
+{text:"The bug was in line 47 of the auth middleware. Off-by-one in the token expiry check.",isSlop:false,category:"incident report",difficulty:1},
+{text:"Closes #4892. Added retry logic for transient network failures.",isSlop:false,category:"commit message",difficulty:1},
+{text:"Our P95 latency went from 340ms to 89ms after we added the index.",isSlop:false,category:"engineering update",difficulty:1},
+{text:"// TODO: fix this later (committed 3 years ago)",isSlop:false,category:"code comment",difficulty:1},
+{text:"Works on my machine (Docker edition).",isSlop:false,category:"code comment",difficulty:1},
+{text:"Rewrote in Rust btw.",isSlop:false,category:"commit message",difficulty:1},
+{text:"LGTM (reviewer spent 14 seconds on a 2000-line PR).",isSlop:false,category:"code review",difficulty:1},
+{text:"This PR removes 4,000 lines of code and adds 12. It took six months.",isSlop:false,category:"code review",difficulty:1},
+{text:"Removed dead code. Nobody called this function since 2019.",isSlop:false,category:"commit message",difficulty:1},
+{text:"The dashboard is broken because the API returns dates as strings in some regions and integers in others.",isSlop:false,category:"bug report",difficulty:1},
+{text:"We have 14 microservices. Three of them do anything. The rest are load-bearing YAML.",isSlop:false,category:"engineering update",difficulty:1},
+{text:"Pinned the dependency to 2.3.1 because 2.4.0 broke everything and the changelog just says 'improvements'.",isSlop:false,category:"commit message",difficulty:2},
+{text:"Rolled back. The migration worked in staging but dropped a column in prod that three services depend on.",isSlop:false,category:"incident report",difficulty:1},
+{text:"Fixed: config parser crashes if you pass it an emoji. Somehow this came up in production.",isSlop:false,category:"commit message",difficulty:1},
+{text:"We shipped the fix at 2am. On-call got paged four times. Buying them lunch.",isSlop:false,category:"incident report",difficulty:1},
+{text:"The Slack bot responds to every message containing 'help' which includes 'I can't help but notice'.",isSlop:false,category:"bug report",difficulty:1},
+{text:"This CSV has 340,000 rows and every single email address is test@example.com.",isSlop:false,category:"bug report",difficulty:1},
+{text:"Cache invalidation bug. Again. The two hard problems are undefeated.",isSlop:false,category:"engineering update",difficulty:1},
+{text:"Ran the profiler. 60% of the time is spent parsing config files we never read.",isSlop:false,category:"engineering update",difficulty:2},
+{text:"The customer says the button 'doesn't work.' Button has no click handler.",isSlop:false,category:"bug report",difficulty:1},
+{text:"Reverted my own PR from yesterday. It fixed the race condition but introduced a deadlock.",isSlop:false,category:"commit message",difficulty:2},
+{text:"Added a 200ms sleep because the real fix would take a sprint and we ship Monday.",isSlop:false,category:"commit message",difficulty:1},
+{text:"Log says 'Error: success'. I have questions.",isSlop:false,category:"bug report",difficulty:1},
+{text:"We don't have documentation for this endpoint. We have a Slack message from 2021 and a prayer.",isSlop:false,category:"engineering update",difficulty:1},
+{text:"PR description: 'trust me'. 47 files changed.",isSlop:false,category:"code review",difficulty:1},
+{text:"Replaced the hand-rolled auth system with a library because I don't want to be on the news.",isSlop:false,category:"commit message",difficulty:2},
+{text:"Flaky test. Passes 99% of the time. Fails every time someone's watching.",isSlop:false,category:"bug report",difficulty:1},
+
+// ---- AMBIGUOUS / TRICKY (15) ----
+{text:"We believe open source is the foundation of modern software development.",isSlop:true,category:"corporate (sounds right but it's textbook slop phrasing)",difficulty:2},
+{text:"This release includes several exciting improvements.",isSlop:true,category:"changelog (every changelog ever -- zero specifics)",difficulty:2},
+{text:"We're committed to supporting the developer community.",isSlop:true,category:"corporate (committed to what exactly?)",difficulty:2},
+{text:"Breaking changes: removed the legacy authentication flow.",isSlop:false,category:"changelog (dramatic but factual)",difficulty:2},
+{text:"Our team has been hard at work on this.",isSlop:true,category:"blog post (everyone says this, nobody learns anything from it)",difficulty:3},
+{text:"Security is our top priority.",isSlop:true,category:"corporate (if it were, you wouldn't need to say it)",difficulty:2},
+{text:"We value your feedback and take it seriously.",isSlop:true,category:"corporate (the sentence companies say right before ignoring you)",difficulty:3},
+{text:"We made mistakes and we're working to fix them.",isSlop:false,category:"incident response (vague but at least it's honest)",difficulty:3},
+{text:"This project would not be possible without our amazing contributors.",isSlop:true,category:"blog post (nice sentiment, zero specifics)",difficulty:3},
+{text:"Performance improvements across the board.",isSlop:true,category:"changelog (which performance? what board?)",difficulty:2},
+{text:"Thank you to everyone who reported issues.",isSlop:false,category:"changelog (real maintainers actually write this)",difficulty:3},
+{text:"We're taking a different approach this time.",isSlop:false,category:"engineering update (vague but genuinely human)",difficulty:3},
+{text:"Stability and reliability improvements.",isSlop:true,category:"changelog (the sentence that means 'we fixed bugs we won't tell you about')",difficulty:2},
+{text:"We hear you. We're working on it.",isSlop:false,category:"maintainer response (probably real, probably exhausted)",difficulty:3},
+{text:"Big things are coming. Stay tuned.",isSlop:true,category:"blog post (hype with zero information)",difficulty:2},
+{text:"Reduced memory usage by approximately 30%.",isSlop:false,category:"changelog (has a number -- suspicious levels of specificity for slop)",difficulty:2},
+{text:"We're grateful for the trust you place in us.",isSlop:true,category:"corporate (trust is earned not narrated)",difficulty:3},
+{text:"Fixed a bug that only appeared on the second Tuesday of months with 31 days.",isSlop:false,category:"commit message (too specific to be fake)",difficulty:2},
+{text:"This update lays the groundwork for future improvements.",isSlop:true,category:"changelog (translation: nothing visible changed)",difficulty:3},
+{text:"Migrated from Jenkins to GitHub Actions. Build time went from 22 minutes to 6.",isSlop:false,category:"engineering update (specific numbers = real)",difficulty:2},
+{text:"We're investing heavily in developer experience.",isSlop:true,category:"corporate (investing what, in what, for whom?)",difficulty:3},
+{text:"Deprecated. Use fetchUserById() instead.",isSlop:false,category:"code comment (terse and useful -- peak human)",difficulty:2},
+{text:"I'm thrilled to share some thoughts on the future of AI-driven development workflows.",isSlop:true,category:"blog post (thrilled is a red flag)",difficulty:2},
+{text:"Bumped lodash from 4.17.20 to 4.17.21. Changelog says 'security fix' with no details.",isSlop:false,category:"commit message (real dev energy -- annoyed and compliant)",difficulty:3},
+{text:"We need to talk about technical debt.",isSlop:false,category:"engineering update (the scariest sentence in software)",difficulty:2}
 ];
 
-var SLOP_WORDS = [
-  "SYNERGY","LEVERAGE","PARADIGM","DISRUPT","HOLISTIC","AGILE","BANDWIDTH",
-  "SCALABLE","DEEP DIVE","CIRCLE BACK","IDEATE","UNPACK","PIPELINE",
-  "PIVOT","NORTH STAR","STAKEHOLDER","ALIGNMENT","GRANULAR",
-  "MOVE THE NEEDLE","THOUGHT LEADER","LOW-HANGING FRUIT","GAME CHANGER","VALUE ADD"
+/* ===== COMMENTARY ===== */
+var QUIPS = {
+  correctSlop: [
+    "Good eye. That sentence had all the buzzwords and none of the information.",
+    "Nailed it. You could smell the corporate from a mile away.",
+    "Correct. That sentence was 40 words of absolutely nothing.",
+    "Yep, pure slop. Written by someone who bills by the adjective.",
+    "Caught it. That one scored off the charts on the vagueness index.",
+    "Right. That sentence could apply to literally any company doing literally anything.",
+    "Textbook slop. Not a single concrete detail in the whole thing."
+  ],
+  missedSlop: [
+    "You let that through? That sentence had three buzzwords and zero specifics.",
+    "That was slop. The word 'transformative' should have been your first clue.",
+    "Missed it. Re-read it -- does it actually SAY anything?",
+    "That one slipped by. Ask yourself: could this sentence describe any product ever made?",
+    "Slop. If you remove the adjectives, there's no sentence left.",
+    "That was AI-generated filler dressed up in a suit. Better luck next time."
+  ],
+  wronglyCalledSlop: [
+    "That was actually human-written. Real people are allowed to be vague sometimes.",
+    "Nope, that was real. Not every short sentence is suspicious.",
+    "False alarm. That one had actual information in it if you read carefully.",
+    "Humans wrote that. Specificity doesn't make it AI -- it makes it good writing.",
+    "That was real. The lack of buzzwords was your clue.",
+    "Wrong call. Real writing can sound polished without being slop."
+  ],
+  correctNotSlop: [
+    "Yep, real human wrote that. You can tell by the specificity.",
+    "Correct. Real writing has details, numbers, or at least an opinion.",
+    "That was human. No AI would admit it doesn't know why something works.",
+    "Right. Real devs write like that -- blunt, specific, sometimes tired.",
+    "Human-written. The frustration was authentic.",
+    "Real. You can practically hear someone typing that at 2am."
+  ]
+};
+
+var SLAP_COMMENTS = [
+  "WEAPONIZED VAGUENESS","MAXIMUM BUZZWORD DENSITY","AGGRESSIVELY MEANINGLESS",
+  "CORPORATE WORD SALAD","SAYS NOTHING, LOUDLY","ADJECTIVE OVERLOAD",
+  "PURE THOUGHT FOG","SEMANTIC EMPTINESS","CONTENT-FREE ZONE","HYPE SINGULARITY"
 ];
 
-var SLAP_NOTES = [
-  "Margin note: 'no.'",
-  "Margin note: 'DELETE THIS'",
-  "Margin note: 'were you held at gunpoint?'",
-  "Margin note: 'this triggers my fight or flight'",
-  "Margin note: 'I'm calling HR'",
-  "Margin note: 'peer review: rejected with prejudice'",
-  "Margin note: 'detected: crimes against prose'",
-  "Margin note: 'flagged by the Geneva Convention'"
-];
+var STREAK_MSGS = {3:"Warming up...",5:"Slop Detector Engaged",8:"EAGLE-EYED EDITOR",10:"ABSOLUTE SLOP DESTROYER",15:"YOU COULD REPLACE AN ENTIRE EDITORIAL TEAM",20:"THE AI IS AFRAID OF YOU"};
 
-var S_SET = {}; "qwertasdfgzxcv".split("").forEach(function(c){S_SET[c]=1;});
-var L_SET = {}; "yuihjkbnml".split("").forEach(function(c){L_SET[c]=1;});
-var O_SET = {}; [" ",".",",","'","!","?"].forEach(function(c){O_SET[c]=1;});
+var REVIEW_COMMENTS = {
+  S:"Employee demonstrates supernatural ability to detect corporate nonsense. Promoting immediately.",
+  A:"Strong performer. Rarely fooled by buzzwords. Minor slip-ups forgiven due to overall excellence.",
+  B:"Solid slop detection skills. Some ambiguous sentences got through, but the fundamentals are there.",
+  C:"Acceptable performance. Recommend additional training in identifying vague platitudes.",
+  D:"Concerning number of buzzwords went undetected. Employee may be writing slop themselves.",
+  F:"Employee let virtually all slop through undetected. We're not angry, just disappointed. Actually, we're angry too."
+};
 
-var COLORS = ["#a855f7","#ec4899","#06b6d4","#f97316"];
-var COLORS_DIM = ["rgba(168,85,247,0.12)","rgba(236,72,153,0.12)","rgba(6,182,212,0.12)","rgba(249,115,22,0.12)"];
+/* ===== AUDIO (Web Audio API) ===== */
+var audioCtx;
+function ensureAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)()}
 
-var GAME_SECS = 60;
-var HIT_Y_RATIO = 0.87;
-var PERFECT_PX = 26;
-var GOOD_PX = 52;
-
-function lane(ch) {
-  var c = ch.toLowerCase();
-  if (S_SET[c]) return 0;
-  if (L_SET[c]) return 1;
-  if (O_SET[c]) return 2;
-  return 0;
+function playCorrect(){
+  ensureAudio();var now=audioCtx.currentTime;
+  [523.25,659.25,783.99].forEach(function(f,i){
+    var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(0.12,now+i*0.06);
+    g.gain.exponentialRampToValueAtTime(0.001,now+i*0.06+0.3);
+    o.connect(g);g.connect(audioCtx.destination);
+    o.start(now+i*0.06);o.stop(now+i*0.06+0.3);
+  });
 }
-function dispCh(ch) {
-  if (ch === " ") return "___";
-  if (ch === "." || ch === "," || ch === "'") return " "+ch+" ";
-  return ch.toUpperCase();
+function playWrong(){
+  ensureAudio();var now=audioCtx.currentTime;
+  var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type='square';o.frequency.value=110;
+  g.gain.setValueAtTime(0.15,now);
+  g.gain.exponentialRampToValueAtTime(0.001,now+0.4);
+  o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+0.4);
 }
-function esc(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-
-// ---- AUDIO ----
-var audioCtx = null;
-function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
-function beep(type,f1,dur,f2,vol) {
-  if (!audioCtx) return;
-  var o = audioCtx.createOscillator(), g = audioCtx.createGain();
-  o.type = type; o.frequency.setValueAtTime(f1, audioCtx.currentTime);
-  if (f2) o.frequency.linearRampToValueAtTime(f2, audioCtx.currentTime+dur);
-  g.gain.setValueAtTime(vol||0.14, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur);
-  o.connect(g); g.connect(audioCtx.destination);
-  o.start(); o.stop(audioCtx.currentTime+dur);
+function playCombo(){
+  ensureAudio();var now=audioCtx.currentTime;
+  [880,1108.73,1318.51,1567.98].forEach(function(f,i){
+    var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(0.08,now+i*0.07);
+    g.gain.exponentialRampToValueAtTime(0.001,now+i*0.07+0.25);
+    o.connect(g);g.connect(audioCtx.destination);
+    o.start(now+i*0.07);o.stop(now+i*0.07+0.25);
+  });
 }
-function sndPerfect()  { beep("sine",880,0.12,null,0.18); }
-function sndGood()     { beep("sine",660,0.10,null,0.12); }
-function sndMiss()     { beep("triangle",160,0.15,null,0.12); }
-function sndSlopHit()  { beep("sawtooth",220,0.35,80,0.15); }
-function sndSlopDodge(){ beep("sine",440,0.25,880,0.14); }
-function sndChord() {
-  beep("sine",523,0.2,null,0.09);
-  setTimeout(function(){beep("sine",659,0.2,null,0.09);},40);
-  setTimeout(function(){beep("sine",784,0.2,null,0.09);},80);
+function playSpeed(){
+  ensureAudio();var now=audioCtx.currentTime;
+  var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type='sawtooth';o.frequency.setValueAtTime(200,now);
+  o.frequency.exponentialRampToValueAtTime(800,now+0.15);
+  g.gain.setValueAtTime(0.1,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.2);
+  o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+0.2);
 }
 
-// ---- DOM ----
-var $start = document.getElementById("start-screen");
-var $over = document.getElementById("gameover-screen");
-var $play = document.getElementById("gameplay");
-var $canvas = document.getElementById("lane-canvas");
-var $target = document.getElementById("target-sentence");
-var $blog = document.getElementById("blog-output");
-var $score = document.getElementById("hud-score");
-var $combo = document.getElementById("hud-combo");
-var $timer = document.getElementById("hud-timer");
-var $acc = document.getElementById("hud-accuracy");
-var $counts = document.getElementById("hud-counts");
-var $comment = document.getElementById("commentary");
-var $flash = document.getElementById("flash-overlay");
-var $speedN = document.getElementById("speed-notify");
-var $nextN = document.getElementById("next-notify");
-var $slapFace = document.getElementById("slap-face");
-var $slapMeter = document.getElementById("slap-meter");
-var $slapNotes = document.getElementById("slap-notes");
-var $laneKeys = document.getElementById("lane-keys");
-var $laneArea = document.getElementById("lane-area");
-var $slapSidebar = document.getElementById("slap-sidebar");
+/* ===== PARTICLES (canvas) ===== */
+var cvs=document.getElementById('particles');
+var pctx=cvs.getContext('2d');
+var particles=[];
+function resizeCanvas(){cvs.width=window.innerWidth;cvs.height=window.innerHeight}
+window.addEventListener('resize',resizeCanvas);resizeCanvas();
 
-var ctx, cW, cH, hitY, lW;
-var keyEls = [];
-
-function buildKeys() {
-  $laneKeys.innerHTML = "";
-  var names = ["S","L","O","P"];
-  for (var i=0;i<4;i++) {
-    var d = document.createElement("div");
-    d.className = "lk lk-"+i;
-    d.textContent = names[i];
-    d.style.width = lW+"px";
-    $laneKeys.appendChild(d);
-    keyEls[i] = d;
+function spawnParticles(x,y,color,count){
+  count=count||20;
+  for(var i=0;i<count;i++){
+    var angle=Math.random()*Math.PI*2,speed=2+Math.random()*4;
+    particles.push({x:x,y:y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,life:1,color:color,size:2+Math.random()*3});
   }
 }
+function tickParticles(){
+  pctx.clearRect(0,0,cvs.width,cvs.height);
+  var next=[];
+  for(var i=0;i<particles.length;i++){
+    var p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.life-=0.02;
+    if(p.life<=0)continue;
+    pctx.globalAlpha=p.life;pctx.fillStyle=p.color;
+    pctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);
+    next.push(p);
+  }
+  particles=next;
+  pctx.globalAlpha=1;
+  requestAnimationFrame(tickParticles);
+}
+tickParticles();
 
-function resize() {
-  var sw = $slapSidebar.offsetWidth;
-  var w = $laneArea.clientWidth - sw;
-  var h = $laneArea.clientHeight;
-  var dpr = window.devicePixelRatio || 1;
-  $canvas.width = w * dpr;
-  $canvas.height = h * dpr;
-  $canvas.style.width = w + "px";
-  $canvas.style.height = h + "px";
-  cW = w; cH = h;
-  hitY = cH * HIT_Y_RATIO;
-  lW = cW / 4;
-  ctx = $canvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  $laneKeys.style.width = w + "px";
-  buildKeys();
+/* ===== GAME STATE ===== */
+var state='start';
+var score=0,combo=0,maxCombo=0,lives=3,round=0;
+var sentenceQueue=[],currentSentence=null;
+var timerStart=0,timerDuration=5000,timerRaf=0,timerExpired=false;
+var totalSlop=0,totalNotSlop=0;
+var correctSlopCount=0,totalSlopShown=0,falsePositives=0,totalNotSlopShown=0;
+var correctCount=0,totalAnswered=0;
+var catShown=false,catRound=0;
+var inputLocked=false;
+
+function el(id){return document.getElementById(id)}
+var scoreEl=el('score'),comboEl=el('combo'),heartsEl=el('hearts');
+var roundEl=el('round-num'),timerBarEl=el('timer-bar');
+var sentenceEl=el('sentence-text');
+var resultOverlay=el('result-overlay'),resultVerdict=el('result-verdict');
+var resultCategory=el('result-category'),resultSlapEl=el('result-slap'),resultQuip=el('result-quip');
+var streakEl=el('streak-announce'),speedEl=el('speed-notify');
+var slopPct=el('slop-pct'),slopFill=el('slop-fill');
+var catEl=el('the-cat');
+
+function showScreen(id){
+  var screens=document.querySelectorAll('.screen');
+  for(var i=0;i<screens.length;i++)screens[i].classList.remove('active');
+  el(id).classList.add('active');
 }
 
-// ---- STATE ----
-var mode = "start"; // start | play | over
-var notes, blogC, score2, combo2, maxC, perfC, goodC, missC, slopHC, slopDC, totalH;
-var timeL, speed, lastSU, sIdx, cIdx, nxtNote, nxtSlop, slopM;
-var commentT, commentF, missStr, perfStr;
-var raf, prevT;
-
-function start() {
-  initAudio(); mode = "play";
-  notes=[]; blogC=[]; score2=0; combo2=0; maxC=0;
-  perfC=0; goodC=0; missC=0; slopHC=0; slopDC=0; totalH=0;
-  timeL=GAME_SECS; speed=140; lastSU=0;
-  sIdx=Math.floor(Math.random()*SENTENCES.length); cIdx=0;
-  nxtNote=0; nxtSlop=8+Math.random()*4; slopM=0;
-  commentT=0; commentF={}; missStr=0; perfStr=0;
-
-  $start.style.display="none"; $over.style.display="none";
-  $play.style.display="flex";
-  resize(); updTarget(); updBlog(); updHUD(); updSLAP();
-  prevT = performance.now();
-  raf = requestAnimationFrame(loop);
+/* ===== HIGH SCORE ===== */
+function getHighScore(){return parseInt(localStorage.getItem('slopgame_high')||'0',10)}
+function setHighScore(s){localStorage.setItem('slopgame_high',String(s))}
+function showStartHighScore(){
+  var hs=getHighScore();
+  el('start-high-score').textContent=hs>0?'High Score: '+hs:'';
 }
 
-// ---- LOOP ----
-function loop(now) {
-  var dt = Math.min((now - prevT)/1000, 0.05);
-  prevT = now;
-  timeL -= dt;
-  if (timeL <= 0) { timeL=0; end(); return; }
+/* ===== SHUFFLE ===== */
+function shuffle(arr){
+  for(var i=arr.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var tmp=arr[i];arr[i]=arr[j];arr[j]=tmp;
+  }
+  return arr;
+}
 
-  // speed up every 15s
-  var sl = Math.floor((GAME_SECS - timeL)/15);
-  if (sl > lastSU) { lastSU = sl; speed = 140 + sl*45; showNotify($speedN); }
+function buildQueue(){
+  var d1=shuffle(SENTENCES.filter(function(s){return s.difficulty===1}));
+  var d2=shuffle(SENTENCES.filter(function(s){return s.difficulty===2}));
+  var d3=shuffle(SENTENCES.filter(function(s){return s.difficulty===3}));
+  sentenceQueue=d1.concat(d2).concat(d3);
+}
 
-  // spawn letters
-  nxtNote -= dt;
-  if (nxtNote <= 0) {
-    var sen = SENTENCES[sIdx];
-    if (cIdx >= sen.length) {
-      sIdx = (sIdx+1) % SENTENCES.length;
-      cIdx = 0;
-      updTarget();
-      showNotify($nextN);
+/* ===== TIMER ===== */
+function getTimerDuration(){
+  if(round<10)return 5000;
+  if(round<20)return 4000;
+  if(round<30)return 3000;
+  return 2500;
+}
+
+function startTimer(){
+  timerDuration=getTimerDuration();
+  timerStart=performance.now();
+  timerExpired=false;
+  timerBarEl.style.width='100%';
+  timerBarEl.className='timer-bar';
+  function tick(){
+    if(state!=='playing'||timerExpired)return;
+    var elapsed=performance.now()-timerStart;
+    var pct=Math.max(0,1-elapsed/timerDuration);
+    timerBarEl.style.width=(pct*100)+'%';
+    if(pct<0.25)timerBarEl.className='timer-bar danger';
+    else if(pct<0.5)timerBarEl.className='timer-bar warning';
+    else timerBarEl.className='timer-bar';
+    if(pct<=0){timerExpired=true;handleAnswer(null);return}
+    timerRaf=requestAnimationFrame(tick);
+  }
+  timerRaf=requestAnimationFrame(tick);
+}
+function stopTimer(){timerExpired=true;cancelAnimationFrame(timerRaf)}
+
+/* ===== HEARTS ===== */
+function renderHearts(){
+  var s='';
+  for(var i=0;i<lives;i++)s+='\u2764\uFE0F';
+  for(var j=lives;j<3;j++)s+='\uD83D\uDDA4';
+  heartsEl.textContent=s;
+  if(lives===1)heartsEl.classList.add('danger');
+  else heartsEl.classList.remove('danger');
+}
+
+/* ===== SLOP-O-METER ===== */
+function updateSlopMeter(){
+  var total=totalSlop+totalNotSlop;
+  if(total===0){slopPct.textContent='0%';slopFill.style.height='0%';return}
+  var pct=Math.round((totalSlop/total)*100);
+  slopPct.textContent=pct+'%';
+  slopFill.style.height=pct+'%';
+}
+
+/* ===== SHOW SENTENCE ===== */
+function showNextSentence(){
+  if(sentenceQueue.length===0){endGame();return}
+  inputLocked=false;
+  state='playing';
+  round++;
+  currentSentence=sentenceQueue.shift();
+  sentenceEl.textContent=currentSentence.text;
+  sentenceEl.className='sentence-text';
+  void sentenceEl.offsetWidth;
+  sentenceEl.classList.add('visible');
+  roundEl.textContent='Round '+round;
+  resultOverlay.classList.remove('show');
+
+  if(round>1&&round%10===1)showSpeedNotify();
+  if(!catShown&&round===catRound){showCat();catShown=true}
+
+  startTimer();
+}
+
+/* ===== HANDLE ANSWER ===== */
+function handleAnswer(playerSaysSlop){
+  if(state!=='playing'||inputLocked)return;
+  inputLocked=true;
+  stopTimer();
+  state='result';
+
+  var s=currentSentence;
+  var timeout=(playerSaysSlop===null);
+  var correct=!timeout&&(playerSaysSlop===s.isSlop);
+
+  totalAnswered++;
+  if(s.isSlop){
+    totalSlopShown++;totalSlop++;
+    if(correct)correctSlopCount++;
+  }else{
+    totalNotSlopShown++;totalNotSlop++;
+    if(!correct&&!timeout&&playerSaysSlop===true)falsePositives++;
+  }
+  if(correct)correctCount++;
+  updateSlopMeter();
+
+  if(correct){
+    score+=10*(1+Math.floor(combo/3));
+    combo++;
+    if(combo>maxCombo)maxCombo=combo;
+    scoreEl.textContent=score;
+    playCorrect();
+    document.body.classList.add('flash-correct');
+    setTimeout(function(){document.body.classList.remove('flash-correct')},300);
+    spawnParticles(window.innerWidth/2,window.innerHeight/2,'#3fb950',25);
+
+    if(combo>1){
+      var bangs='';for(var b=0;b<Math.min(Math.floor(combo/5),3);b++)bangs+='!';
+      comboEl.textContent='x'+combo+bangs;
+      comboEl.style.transform='scale(1.3)';
+      setTimeout(function(){comboEl.style.transform='scale(1)'},150);
     }
-    var ch = sen[cIdx];
-    notes.push({ch:ch, disp:dispCh(ch), lane:lane(ch), y:-30, hit:false, miss:false, slop:false, hType:null, hTime:0, a:1});
-    cIdx++;
-    nxtNote = Math.max(0.18, 0.45 - (speed-140)*0.002);
-  }
 
-  // spawn slop
-  nxtSlop -= dt;
-  if (nxtSlop <= 0) {
-    var sw = SLOP_WORDS[Math.floor(Math.random()*SLOP_WORDS.length)];
-    notes.push({ch:null, disp:sw, lane:3, y:-40, hit:false, miss:false, slop:true, slopW:sw, hType:null, hTime:0, a:1});
-    nxtSlop = 8 + Math.random()*4;
-  }
-
-  // move notes
-  for (var i=0;i<notes.length;i++) {
-    var n = notes[i];
-    n.y += (n.slop ? speed*0.85 : speed) * dt;
-    if (!n.hit && !n.miss && n.y > hitY + GOOD_PX + 12) {
-      n.miss = true;
-      if (n.slop) doSlopDodge(n);
-      else doMiss(n);
+    if(STREAK_MSGS[combo]){
+      showStreak(STREAK_MSGS[combo]);
+      playCombo();
     }
+
+    resultVerdict.textContent='CORRECT';
+    resultVerdict.className='result-verdict correct';
+  }else{
+    combo=0;
+    comboEl.textContent='';
+    lives--;
+    renderHearts();
+    playWrong();
+    document.body.classList.add('shake');
+    document.body.classList.add('flash-wrong');
+    setTimeout(function(){document.body.classList.remove('shake');document.body.classList.remove('flash-wrong')},300);
+
+    resultVerdict.textContent=timeout?'TOO SLOW':'WRONG';
+    resultVerdict.className='result-verdict wrong';
   }
-  notes = notes.filter(function(n){ return n.y < cH+60; });
 
-  // commentary timer
-  if (commentT > 0) { commentT -= dt; if (commentT<=0) $comment.style.opacity="0"; }
+  var wasLabel=s.isSlop?'SLOP':'NOT SLOP';
+  resultCategory.textContent=wasLabel+' \u2014 '+s.category;
 
-  render(); updHUD();
-  raf = requestAnimationFrame(loop);
+  if(correct&&s.isSlop){
+    var slapScore=70+Math.floor(Math.random()*30);
+    resultSlapEl.textContent='S.L.A.P. Score: '+slapScore+'/100 \u2014 '+SLAP_COMMENTS[Math.floor(Math.random()*SLAP_COMMENTS.length)];
+    resultSlapEl.style.display='block';
+  }else{
+    resultSlapEl.style.display='none';
+  }
+
+  var quipList;
+  if(timeout){
+    quipList=s.isSlop?QUIPS.missedSlop:QUIPS.wronglyCalledSlop;
+  }else if(correct&&s.isSlop)quipList=QUIPS.correctSlop;
+  else if(correct&&!s.isSlop)quipList=QUIPS.correctNotSlop;
+  else if(!correct&&s.isSlop)quipList=QUIPS.missedSlop;
+  else quipList=QUIPS.wronglyCalledSlop;
+  resultQuip.textContent=quipList[Math.floor(Math.random()*quipList.length)];
+
+  resultOverlay.classList.add('show');
+  sentenceEl.classList.remove('visible');
+  sentenceEl.classList.add('exit');
+
+  if(lives<=0){
+    setTimeout(endGame,1500);
+  }else{
+    setTimeout(showNextSentence,1800);
+  }
 }
 
-// ---- INPUT ----
-document.addEventListener("keydown", function(e) {
-  if (mode === "start") { start(); return; }
-  if (mode === "over") { if (e.key==="Enter"||e.key===" ") start(); return; }
-  if (mode !== "play") return;
+/* ===== STREAK ===== */
+function showStreak(msg){
+  streakEl.textContent=msg;
+  streakEl.style.opacity='1';
+  streakEl.style.transform='translate(-50%,-50%) scale(1.2)';
+  streakEl.style.transition='opacity .8s, transform .3s';
+  setTimeout(function(){streakEl.style.transform='translate(-50%,-50%) scale(1)'},100);
+  setTimeout(function(){streakEl.style.opacity='0'},1200);
+}
 
-  var k = e.key.toLowerCase(), ln = -1;
-  if (k==="s") ln=0; else if (k==="l") ln=1; else if (k==="o") ln=2; else if (k==="p") ln=3;
-  if (ln < 0) return;
-  e.preventDefault();
+/* ===== SPEED NOTIFY ===== */
+function showSpeedNotify(){
+  playSpeed();
+  speedEl.style.opacity='1';
+  speedEl.style.transition='opacity .6s';
+  setTimeout(function(){speedEl.style.opacity='0'},1000);
+}
 
-  // key visual
-  if (keyEls[ln]) { keyEls[ln].classList.add("on"); setTimeout(function(){keyEls[ln].classList.remove("on");},100); }
+/* ===== THE CAT ===== */
+function showCat(){
+  catEl.style.left='-40px';
+  catEl.style.opacity='1';
+  catEl.style.transition='left 6s linear, opacity 0.5s';
+  setTimeout(function(){catEl.style.left=(window.innerWidth+40)+'px'},50);
+  setTimeout(function(){catEl.style.opacity='0'},5500);
+}
 
-  // find closest note in lane
-  var best=null, bDist=Infinity;
-  for (var i=0;i<notes.length;i++) {
-    var n=notes[i];
-    if (n.hit||n.miss||n.lane!==ln) continue;
-    var d=Math.abs(n.y - hitY);
-    if (d < bDist && d < GOOD_PX+20) { bDist=d; best=n; }
+/* ===== GAME OVER ===== */
+function endGame(){
+  state='gameover';
+  stopTimer();
+
+  var detectionRate=totalSlopShown>0?Math.round((correctSlopCount/totalSlopShown)*100):0;
+  var fpRate=totalNotSlopShown>0?Math.round((falsePositives/totalNotSlopShown)*100):0;
+  var accuracy=totalAnswered>0?Math.round((correctCount/totalAnswered)*100):0;
+
+  var grade,gradeClass;
+  if(accuracy>=95){grade='S';gradeClass='s-tier'}
+  else if(accuracy>=85){grade='A';gradeClass='a-tier'}
+  else if(accuracy>=70){grade='B';gradeClass='b-tier'}
+  else if(accuracy>=55){grade='C';gradeClass='c-tier'}
+  else if(accuracy>=40){grade='D';gradeClass='d-tier'}
+  else{grade='F';gradeClass='f-tier'}
+
+  el('go-grade').textContent=grade;
+  el('go-grade').className='go-grade '+gradeClass;
+  el('go-score').textContent=score;
+  el('go-combo').textContent='x'+maxCombo;
+  el('go-detect').textContent=detectionRate+'%';
+  el('go-false').textContent=fpRate+'%';
+  el('go-reviewed').textContent=totalAnswered;
+  el('go-accuracy').textContent=accuracy+'%';
+  el('go-comment').textContent=REVIEW_COMMENTS[grade];
+
+  var hs=getHighScore();
+  if(score>hs){
+    setHighScore(score);
+    el('go-new-high').style.display='block';
+  }else{
+    el('go-new-high').style.display='none';
   }
-  if (!best) return;
 
-  best.hit = true;
-  best.hTime = performance.now();
+  showScreen('gameover-screen');
+}
 
-  if (best.slop) {
-    doSlopHit(best);
-  } else {
-    if (Math.abs(best.y - hitY) <= PERFECT_PX) {
-      best.hType = "perfect"; doPerfect(best);
-    } else {
-      best.hType = "good"; doGood(best);
-    }
+/* ===== START GAME ===== */
+function startGame(){
+  score=0;combo=0;maxCombo=0;lives=3;round=0;
+  totalSlop=0;totalNotSlop=0;
+  correctSlopCount=0;totalSlopShown=0;falsePositives=0;totalNotSlopShown=0;
+  correctCount=0;totalAnswered=0;
+  catShown=false;catRound=5+Math.floor(Math.random()*20);
+  inputLocked=false;
+  scoreEl.textContent='0';comboEl.textContent='';
+  renderHearts();updateSlopMeter();
+  buildQueue();
+  showScreen('game-screen');
+  ensureAudio();
+  setTimeout(showNextSentence,400);
+}
+
+/* ===== INPUT ===== */
+document.addEventListener('keydown',function(e){
+  if(e.repeat)return;
+  var key=e.key.toLowerCase();
+  if(state==='start'&&(key===' '||key==='Enter')){
+    e.preventDefault();startGame();
+  }else if(state==='playing'){
+    if(key==='s'){e.preventDefault();handleAnswer(true)}
+    else if(key==='n'){e.preventDefault();handleAnswer(false)}
+  }else if(state==='gameover'&&(key===' '||key==='Enter')){
+    e.preventDefault();startGame();
   }
 });
 
-document.addEventListener("keyup", function(e) {
-  var k=e.key.toLowerCase(),ln=-1;
-  if(k==="s")ln=0;else if(k==="l")ln=1;else if(k==="o")ln=2;else if(k==="p")ln=3;
-  if(ln>=0&&keyEls[ln]) keyEls[ln].classList.remove("on");
+el('btn-again').addEventListener('click',startGame);
+el('btn-share').addEventListener('click',function(){
+  var detectionRate=totalSlopShown>0?Math.round((correctSlopCount/totalSlopShown)*100):0;
+  var accuracy=totalAnswered>0?Math.round((correctCount/totalAnswered)*100):0;
+  var grade;
+  if(accuracy>=95)grade='S';else if(accuracy>=85)grade='A';else if(accuracy>=70)grade='B';
+  else if(accuracy>=55)grade='C';else if(accuracy>=40)grade='D';else grade='F';
+  var text='SLOP or NOT -- Content Quality Review\nGrade: '+grade+' | Score: '+score+' | Combo: x'+maxCombo+'\nSlop Detection: '+detectionRate+'% | Accuracy: '+accuracy+'%\nCan you tell AI garbage from real writing?';
+  navigator.clipboard.writeText(text).then(function(){
+    el('btn-share').textContent='COPIED!';
+    setTimeout(function(){el('btn-share').textContent='SHARE SCORE'},1500);
+  });
 });
 
-// prevent space scroll
-document.addEventListener("keydown", function(e){ if(e.key===" " && mode==="play") e.preventDefault(); });
-
-// ---- HIT / MISS ----
-function mult() {
-  if (combo2>=80) return 8;
-  if (combo2>=40) return 4;
-  if (combo2>=20) return 3;
-  if (combo2>=10) return 2;
-  return 1;
-}
-function doPerfect(n) {
-  score2 += 100*mult(); combo2++; perfC++; totalH++; perfStr++; missStr=0;
-  if(combo2>maxC) maxC=combo2;
-  blogC.push({ch:n.ch,t:"c"}); updBlog(); sndPerfect();
-  feedback(n,"PERFECT","#fbbf24"); flash("rgba(251,191,36,0.08)");
-  chkComment(); if(combo2>0&&combo2%10===0) sndChord();
-}
-function doGood(n) {
-  score2 += 50*mult(); combo2++; goodC++; totalH++; perfStr=0; missStr=0;
-  if(combo2>maxC) maxC=combo2;
-  blogC.push({ch:n.ch,t:"c"}); updBlog(); sndGood();
-  feedback(n,"GOOD","#a3e635"); chkComment();
-  if(combo2>0&&combo2%10===0) sndChord();
-}
-function doMiss(n) {
-  score2 -= 10; combo2=0; missC++; totalH++; perfStr=0; missStr++;
-  var wc = "xzqjvkw";
-  blogC.push({ch:wc[Math.floor(Math.random()*wc.length)],t:"w"});
-  updBlog(); sndMiss(); feedback(n,"MISS","#e11d48"); chkComment();
-}
-function doSlopHit(n) {
-  score2 -= 200; combo2=0; slopHC++; totalH++; missStr=0; perfStr=0;
-  slopM = Math.min(100, slopM+25);
-  blogC.push({ch:" "+n.slopW+" ",t:"s"}); updBlog(); updSLAP(); sndSlopHit();
-  feedback(n,"SLOP!","#e11d48"); flash("rgba(225,29,72,0.15)");
-  addSlapNote(SLAP_NOTES[Math.floor(Math.random()*SLAP_NOTES.length)]);
-  chkComment();
-}
-function doSlopDodge(n) {
-  score2 += 200*mult(); slopDC++; sndSlopDodge();
-  feedback(n,"DODGED!","#22c55e"); flash("rgba(34,197,94,0.08)");
-  fireCom("slopDodge","Smart. That word has a restraining order from real writing.");
-}
-
-// ---- FEEDBACK ----
-function feedback(n, txt, col) {
-  var el = document.createElement("div");
-  el.className = "hit-fb"; el.textContent = txt; el.style.color = col;
-  var x = (n.lane+0.5)*lW;
-  el.style.left = x+"px"; el.style.top = (hitY-20)+"px";
-  $laneArea.appendChild(el);
-  setTimeout(function(){el.remove();},700);
-}
-function flash(c) {
-  $flash.style.background=c; $flash.style.opacity="1";
-  setTimeout(function(){$flash.style.opacity="0";},150);
-}
-function showNotify(el) {
-  el.style.transition="none"; el.style.opacity="1";
-  setTimeout(function(){el.style.transition="opacity 0.5s";el.style.opacity="0";},800);
-}
-
-// ---- COMMENTARY ----
-function fireCom(k,t) {
-  if (commentF[k]) return;
-  commentF[k]=true;
-  $comment.textContent = '"'+t+'"';
-  $comment.style.opacity="1";
-  commentT=4;
-}
-function chkComment() {
-  if(perfC===1) fireCom("fp","Wait. That's a word. Everyone stay calm.");
-  if(combo2===10) fireCom("c10","You're too good at this. Suspicious.");
-  if(combo2===20) fireCom("c20","Are you using autocomplete? That's cheating. (It's also our whole thing.)");
-  if(missC===1) fireCom("fm","There it is. The human condition.");
-  if(slopHC===1) fireCom("fs","SLOP DETECTED. That word has been forwarded to the Hague.");
-  if(slopHC>=3) fireCom("ms","Your post has been accepted as a keynote.");
-  if(missStr>=5) fireCom("mstr","Your keyboard is filing a complaint.");
-  if(perfStr>=15) fireCom("pstr","This is dangerously close to a point.");
-}
-
-// ---- SLAP ----
-function updSLAP() {
-  $slapMeter.style.width = slopM+"%";
-  if (slopM>=75){ $slapFace.textContent="\uD83E\uDD2F"; $slapFace.style.transform="scale(1.3)"; }
-  else if(slopM>=50){ $slapFace.textContent="\uD83D\uDE24"; $slapFace.style.transform="scale(1.1)"; }
-  else if(slopM>=25){ $slapFace.textContent="\uD83D\uDE12"; $slapFace.style.transform="scale(1)"; }
-  else { $slapFace.textContent="\uD83D\uDE10"; $slapFace.style.transform="scale(1)"; }
-}
-function addSlapNote(t) {
-  var d=document.createElement("div"); d.textContent=t; d.style.marginTop="4px";
-  d.style.animation="floatUp 4s ease-out forwards";
-  $slapNotes.prepend(d);
-  while($slapNotes.children.length>4) $slapNotes.removeChild($slapNotes.lastChild);
-}
-
-// ---- DOM UPDATES ----
-function updTarget() { $target.textContent = "TARGET: " + SENTENCES[sIdx]; }
-function updBlog() {
-  var h="";
-  for (var i=0;i<blogC.length;i++) {
-    var b=blogC[i], e=esc(b.ch);
-    if(b.t==="c") h+='<span class="c">'+e+'</span>';
-    else if(b.t==="w") h+='<span class="w">'+e+'</span>';
-    else h+='<span class="sl">'+e+'</span>';
-  }
-  h+='<span class="cur"></span>';
-  $blog.innerHTML=h;
-}
-function updHUD() {
-  $score.textContent = score2.toLocaleString();
-  if(combo2>=2) {
-    var m=mult();
-    $combo.textContent = combo2+"x combo"+(m>1?" (x"+m+")":"");
-    $combo.style.transform = "scale("+Math.min(1.5,1+combo2*0.005)+")";
-    $combo.style.color = combo2>=20?"#fbbf24":"#f97316";
-  } else { $combo.textContent=""; $combo.style.transform="scale(1)"; }
-  $timer.textContent = timeL.toFixed(1)+"s";
-  $timer.style.color = timeL<10?"#e11d48":"#888";
-  var ac = totalH>0?Math.round((perfC+goodC)/totalH*100):100;
-  $acc.textContent = ac+"% accuracy";
-  $counts.innerHTML = '<span style="color:#fbbf24">'+perfC+'P</span> <span style="color:#a3e635">'+goodC+'G</span> <span style="color:#e11d48">'+missC+'M</span>';
-}
-
-// ---- CANVAS RENDER ----
-function render() {
-  ctx.clearRect(0,0,cW,cH);
-  var now = performance.now();
-
-  // scrolling grid
-  var go = (now*0.05*(speed/140))%40;
-  ctx.strokeStyle="rgba(255,255,255,0.03)"; ctx.lineWidth=1;
-  for(var y=go;y<cH;y+=40){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cW,y);ctx.stroke(); }
-
-  // lane dividers
-  ctx.strokeStyle="rgba(255,255,255,0.06)";
-  for(var i=1;i<4;i++){ ctx.beginPath();ctx.moveTo(i*lW,0);ctx.lineTo(i*lW,cH);ctx.stroke(); }
-
-  // lane glow near hit zone
-  for(var i=0;i<4;i++){
-    var g=ctx.createLinearGradient(0,hitY-80,0,hitY+20);
-    g.addColorStop(0,"transparent"); g.addColorStop(0.5,COLORS_DIM[i]); g.addColorStop(1,"transparent");
-    ctx.fillStyle=g; ctx.fillRect(i*lW,hitY-80,lW,100);
-  }
-
-  // hit zone
-  ctx.fillStyle="rgba(255,255,255,0.07)"; ctx.fillRect(0,hitY-3,cW,6);
-  ctx.fillStyle="rgba(251,191,36,0.1)"; ctx.fillRect(0,hitY-PERFECT_PX,cW,PERFECT_PX*2);
-
-  // notes
-  for(var i=0;i<notes.length;i++){
-    var n=notes[i];
-    if(n.hit){
-      var el=(now-n.hTime)/300;
-      n.a=Math.max(0,1-el);
-      if(n.a<=0) continue;
-    }
-    var cx=(n.lane+0.5)*lW, cy=n.y;
-    var dh=Math.abs(cy-hitY), prox=Math.max(0,1-dh/cH);
-    var sc=1+prox*0.15+Math.sin(now*0.006)*0.03;
-
-    ctx.save();
-    ctx.globalAlpha=n.a;
-    ctx.translate(cx,cy);
-    ctx.scale(sc,sc);
-
-    if(n.slop){
-      // slop bomb
-      var sp=1+Math.sin(now*0.01)*0.1;
-      ctx.scale(sp,sp);
-      ctx.shadowColor="#e11d48";
-      ctx.shadowBlur=20+Math.sin(now*0.008)*10;
-      var bw=lW*0.82, bh=36;
-      var gr=ctx.createLinearGradient(-bw/2,-bh/2,bw/2,bh/2);
-      gr.addColorStop(0,"#f97316"); gr.addColorStop(1,"#e11d48");
-      ctx.fillStyle=gr;
-      rr(ctx,-bw/2,-bh/2,bw,bh,8); ctx.fill();
-      ctx.strokeStyle="#fff"; ctx.lineWidth=2;
-      rr(ctx,-bw/2,-bh/2,bw,bh,8); ctx.stroke();
-      ctx.shadowBlur=0;
-      ctx.fillStyle="#fff";
-      ctx.font="bold 11px 'SF Mono',Menlo,monospace";
-      ctx.textAlign="center"; ctx.textBaseline="middle";
-      ctx.fillText("\u2620 "+n.disp,0,0);
-    } else {
-      // normal note
-      var col=COLORS[n.lane];
-      if(dh<80){ ctx.shadowColor=col; ctx.shadowBlur=15; }
-      if(n.hit&&n.hType==="perfect"){ ctx.shadowColor="#fbbf24"; ctx.shadowBlur=30; }
-      var nw=lW*0.6, nh=32;
-      if(n.hit&&n.hType==="perfect") ctx.fillStyle="#fbbf24";
-      else if(n.hit&&n.hType==="good") ctx.fillStyle="#a3e635";
-      else if(n.miss) ctx.fillStyle="#e11d48";
-      else ctx.fillStyle=col;
-      rr(ctx,-nw/2,-nh/2,nw,nh,6); ctx.fill();
-      ctx.strokeStyle="rgba(255,255,255,0.25)"; ctx.lineWidth=1;
-      rr(ctx,-nw/2,-nh/2,nw,nh,6); ctx.stroke();
-      ctx.shadowBlur=0;
-      ctx.fillStyle="#fff";
-      ctx.font="bold 15px 'SF Mono',Menlo,monospace";
-      ctx.textAlign="center"; ctx.textBaseline="middle";
-      ctx.fillText(n.disp,0,1);
-    }
-    ctx.restore();
-  }
-}
-
-function rr(c,x,y,w,h,r){
-  c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);
-  c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);
-  c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();
-}
-
-// ---- END GAME ----
-function end() {
-  mode = "over";
-  cancelAnimationFrame(raf);
-  $play.style.display="none";
-  $over.style.display="flex";
-
-  var ac = totalH>0?Math.round((perfC+goodC)/totalH*100):100;
-  var grade,gLbl,gCol;
-  if(slopHC>=5){ grade="S+"; gLbl="Congratulations. You're ready for middle management."; gCol="#e11d48"; }
-  else if(ac>=95&&slopHC===0){ grade="F"; gLbl="Too coherent. Suspiciously human."; gCol="#22c55e"; }
-  else if(ac>=80){ grade="D"; gLbl="Almost readable. Try harder to be worse."; gCol="#a3e635"; }
-  else if(ac>=60){ grade="C"; gLbl="Getting there. The typos add character."; gCol="#eab308"; }
-  else if(ac>=40){ grade="B"; gLbl="Now we're cooking with buzzwords."; gCol="#f97316"; }
-  else if(ac>=20){ grade="A"; gLbl="Corporate-ready. Ship it to the blog."; gCol="#ec4899"; }
-  else { grade="S"; gLbl="I showed this to ChatGPT and it apologized."; gCol="#a855f7"; }
-
-  document.getElementById("go-grade").textContent=grade;
-  document.getElementById("go-grade").style.color=gCol;
-  document.getElementById("go-grade-label").textContent=gLbl;
-
-  var stats = [
-    {v:score2.toLocaleString(),l:"SCORE",c:"#a855f7"},
-    {v:ac+"%",l:"ACCURACY",c:"#06b6d4"},
-    {v:perfC,l:"PERFECT",c:"#fbbf24"},
-    {v:goodC,l:"GOOD",c:"#a3e635"},
-    {v:missC,l:"MISS",c:"#e11d48"},
-    {v:maxC+"x",l:"MAX COMBO",c:"#f97316"},
-    {v:slopHC,l:"SLOP HITS",c:"#e11d48"},
-    {v:slopDC,l:"SLOP DODGED",c:"#22c55e"}
-  ];
-  document.getElementById("go-stats").innerHTML = stats.map(function(s){
-    return '<div class="go-stat"><div class="val" style="color:'+s.c+'">'+s.v+'</div><div class="lbl">'+s.l+'</div></div>';
-  }).join("");
-
-  var gc="";
-  if(ac>=90&&slopHC===0) gc="Wait. This almost makes sense. Are you cheating?";
-  else if(ac<30) gc="Draft saved as untitled_final_FINAL2.docx";
-  else if(slopHC>=4) gc="Congratulations. You're ready for middle management.";
-  else if(missC>perfC) gc="Your keyboard is filing a complaint with OSHA.";
-  else if(maxC>=20) gc="That combo was dangerously close to competence.";
-  else gc="Another masterpiece for the content mines.";
-  document.getElementById("go-commentary").textContent='"'+gc+'"';
-
-  var bh='<div class="medium-hdr">Published on Medium &middot; 0 min read</div><div class="author">by AI Blog Bot 3000</div><p>';
-  for(var i=0;i<blogC.length;i++){
-    var b=blogC[i],e2=esc(b.ch);
-    if(b.t==="c") bh+='<span class="c-correct">'+e2+'</span>';
-    else if(b.t==="w") bh+='<span class="c-wrong">'+e2+'</span>';
-    else bh+='<span class="c-slop">'+e2+'</span>';
-  }
-  bh+='</p>';
-  var claps=Math.max(0,Math.floor(score2/100));
-  bh+='<div class="claps">\uD83D\uDC4F '+claps+' clap'+(claps!==1?'s':'')+'</div>';
-  document.getElementById("go-blog").innerHTML=bh;
-
-  var hs=parseInt(localStorage.getItem("slop_rhythm_hs")||"0");
-  var $hs=document.getElementById("go-hs");
-  if(score2>hs){ hs=score2; localStorage.setItem("slop_rhythm_hs",hs.toString());
-    $hs.textContent="NEW HIGH SCORE! "+hs.toLocaleString(); $hs.style.color="#fbbf24";
-  } else { $hs.textContent="High score: "+hs.toLocaleString(); $hs.style.color="#666"; }
-}
-
-document.getElementById("go-btn").addEventListener("click", start);
-window.addEventListener("resize", function(){ if(mode==="play") resize(); });
-})();
+/* ===== INIT ===== */
+showStartHighScore();
 </script>
 </body>
 </html>
