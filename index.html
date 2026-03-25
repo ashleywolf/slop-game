@@ -340,7 +340,8 @@ body {
     <div class="key-hint"><div class="key-letter">O</div><div class="key-desc">Right up</div></div>
     <div class="key-hint"><div class="key-letter">P</div><div class="key-desc">Right down</div></div>
   </div>
-  <p class="how-to">Swing your ragdoll hands to mash keyboard keys. The S.L.A.P. detector is watching.<br>60 seconds. Good luck.</p>
+  <p class="how-to">Swing your ragdoll hands to mash keyboard keys. The S.L.A.P. detector is watching.<br>
+  Your floppy arms swing in arcs across the keyboard. Alternate S-L and O-P rapidly to create chaotic sweeps. The harder you mash, the more you type. Good luck.<br>60 seconds.</p>
   <button class="start-btn" id="start-btn">START SLOPPING</button>
 </div>
 
@@ -664,6 +665,86 @@ var slapLevel = 0;
 var speedMult = 1;
 var chaosMult = 1;
 
+// Audio
+var audioCtx = null;
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playKeySound(keyChar) {
+  if (!audioCtx) return;
+  var osc = audioCtx.createOscillator();
+  var gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  var charCode = keyChar.charCodeAt(0);
+  var freq = 200 + (charCode % 26) * 25 + Math.random() * 30;
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.12);
+}
+function playSlopSound() {
+  if (!audioCtx) return;
+  var osc = audioCtx.createOscillator();
+  var gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+  osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.3);
+  gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.3);
+}
+
+// Particles
+var particles = [];
+function spawnParticles(x, y, color, count) {
+  for (var i = 0; i < count; i++) {
+    particles.push({
+      x: x, y: y,
+      vx: (Math.random() - 0.5) * 6,
+      vy: -Math.random() * 4 - 1,
+      life: 20 + Math.random() * 15,
+      maxLife: 35,
+      color: color,
+      size: 2 + Math.random() * 3
+    });
+  }
+}
+function updateParticles() {
+  for (var i = particles.length - 1; i >= 0; i--) {
+    var p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.15;
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+function drawParticles() {
+  for (var i = 0; i < particles.length; i++) {
+    var p = particles[i];
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * (p.life / p.maxLife), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Screen shake
+var shakeAmount = 0;
+function addShake(amount) { shakeAmount = Math.min(shakeAmount + amount, 8); }
+
+// Hit streak
+var hitStreak = 0;
+var lastHitTime = 0;
+
 // High score
 var highScore = parseInt(localStorage.getItem("slop-hs") || "0", 10);
 
@@ -671,7 +752,7 @@ var highScore = parseInt(localStorage.getItem("slop-hs") || "0", 10);
 // KEYBOARD LAYOUT & RESIZE
 // ================================================================
 
-function makeHand(ax, ay) {
+function makeHand(ax, ay, side) {
   return {
     anchor: { x: ax, y: ay },
     points: [
@@ -684,7 +765,8 @@ function makeHand(ax, ay) {
     lastHitKey: null,
     hitCooldown: 0,
     trail: [],
-    visible: true
+    visible: true,
+    side: side || "left"
   };
 }
 
@@ -730,8 +812,8 @@ function buildKeyPositions() {
 }
 
 function initHands() {
-  leftHand = makeHand(kbX + kbW * 0.28, kbY - 65);
-  rightHand = makeHand(kbX + kbW * 0.72, kbY - 65);
+  leftHand = makeHand(kbX + kbW * 0.28, kbY - 65, "left");
+  rightHand = makeHand(kbX + kbW * 0.72, kbY - 65, "right");
 }
 
 // ================================================================
@@ -760,12 +842,16 @@ function updateHand(hand) {
   if (!hand.visible) return;
   var grav = GRAVITY * chaosMult;
   var damp = DAMPING / (chaosMult > 1 ? 1 + (chaosMult-1)*0.3 : 1);
-  var force = 12 * speedMult;
+  var force = 15 * speedMult;
 
   var wrist = hand.points[1];
   var finger = hand.points[2];
   wrist.y += hand.wristForce * force;
   finger.y += hand.wristForce * force * 0.6;
+
+  var lateralDir = hand.side === "left" ? -1 : 1;
+  wrist.x += hand.wristForce * force * 0.4 * lateralDir;
+  finger.x += hand.wristForce * force * 0.3 * lateralDir;
 
   for (var i = 0; i < hand.points.length; i++) {
     updatePoint(hand.points[i], grav, damp);
@@ -784,14 +870,14 @@ function updateHand(hand) {
 
   var tip = hand.points[2];
   var tipVy = tip.y - tip.oy;
-  if (tipVy > 2 && hand.hitCooldown <= 0) {
+  if (tipVy > 1.5 && hand.hitCooldown <= 0) {
     for (var ki = 0; ki < keyPositions.length; ki++) {
       var key = keyPositions[ki];
       if (tip.x > key.x && tip.x < key.x + key.w && tip.y > key.y && tip.y < key.y + key.h) {
         if (hand.lastHitKey !== ki) {
           onKeyHit(key.char, ki);
           hand.lastHitKey = ki;
-          hand.hitCooldown = 8;
+          hand.hitCooldown = 5;
           tip.y = key.y - 5;
           tip.oy = tip.y + 8;
         }
@@ -832,6 +918,18 @@ function onKeyHit(char, idx) {
   keysHit++;
   hitKeys.push({ idx: idx, timer: 14 });
   acLastKeyTime = elapsed;
+
+  playKeySound(char);
+  spawnParticles(keyPositions[idx].x + keyPositions[idx].w/2, keyPositions[idx].y, "#9b59b6", 6);
+  addShake(1.5);
+
+  var now = Date.now();
+  if (now - lastHitTime < 800) {
+    hitStreak++;
+  } else {
+    hitStreak = 1;
+  }
+  lastHitTime = now;
 
   document.getElementById("keys-hit").textContent = keysHit;
 
@@ -929,6 +1027,10 @@ function registerSlop(word) {
   slopCount++;
   slopTimestamps.push(elapsed);
   document.getElementById("slop-count").textContent = slopCount;
+
+  playSlopSound();
+  spawnParticles(W/2, H/2, "#e74c3c", 12);
+  addShake(5);
 
   // Audience penalty
   audience -= 2 + Math.floor(Math.random() * 4);
@@ -1350,14 +1452,34 @@ function drawKeyboard() {
       if (hitKeys[h].idx === i) { isHit = true; break; }
     }
 
+    // Check proximity to fingertips
+    var nearLeft = false, nearRight = false;
+    if (leftHand && leftHand.visible) {
+      var ltip = leftHand.points[2];
+      var dx = (key.x + key.w/2) - ltip.x;
+      var dy = (key.y + key.h/2) - ltip.y;
+      if (dx*dx + dy*dy < 2500) nearLeft = true;
+    }
+    if (rightHand && rightHand.visible) {
+      var rtip = rightHand.points[2];
+      var dx2 = (key.x + key.w/2) - rtip.x;
+      var dy2 = (key.y + key.h/2) - rtip.y;
+      if (dx2*dx2 + dy2*dy2 < 2500) nearRight = true;
+    }
+
     // Shadow / glow
     if (isHit) {
       ctx.shadowColor = "rgba(155,89,182,0.6)";
       ctx.shadowBlur = 15;
     }
 
-    ctx.fillStyle = isHit ? "rgba(155,89,182,0.65)" : "rgba(30,22,48,0.85)";
-    ctx.strokeStyle = isHit ? "#e74c8c" : "#3a2a5a";
+    if (nearLeft || nearRight) {
+      ctx.fillStyle = isHit ? "rgba(155, 89, 182, 0.8)" : "rgba(50, 35, 70, 0.9)";
+      ctx.strokeStyle = nearLeft ? "#9b59b6" : "#e74c8c";
+    } else {
+      ctx.fillStyle = isHit ? "rgba(155,89,182,0.65)" : "rgba(30,22,48,0.85)";
+      ctx.strokeStyle = isHit ? "#e74c8c" : "#3a2a5a";
+    }
     ctx.lineWidth = 1.5;
     roundRect(ctx, key.x, key.y, key.w, key.h, 5);
     ctx.fill();
@@ -1365,7 +1487,7 @@ function drawKeyboard() {
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
 
-    ctx.fillStyle = isHit ? "#fff" : "#5a4a6a";
+    ctx.fillStyle = isHit ? "#fff" : (nearLeft || nearRight) ? "#8a7a9a" : "#5a4a6a";
     ctx.font = (key.char === " " ? "9" : "11") + "px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -1471,6 +1593,15 @@ function frame() {
     return;
   }
 
+  // Screen shake
+  if (shakeAmount > 0.5) {
+    ctx.save();
+    ctx.translate(
+      (Math.random() - 0.5) * shakeAmount * 2,
+      (Math.random() - 0.5) * shakeAmount * 2
+    );
+  }
+
   // Physics
   updateHand(leftHand);
   updateHand(rightHand);
@@ -1481,6 +1612,7 @@ function frame() {
   updateLayoff();
   updateCoffee();
   updateAutocomplete();
+  updateParticles();
 
   // Draw
   drawMonitor();
@@ -1489,6 +1621,21 @@ function frame() {
   drawCat();
   drawHand(leftHand, "#9b59b6");
   drawHand(rightHand, "#e74c8c");
+  drawParticles();
+
+  // Hit streak display
+  if (hitStreak > 2) {
+    ctx.fillStyle = hitStreak > 8 ? "#e74c8c" : hitStreak > 5 ? "#f39c12" : "#9b59b6";
+    ctx.font = (16 + hitStreak * 2) + "px sans-serif";
+    ctx.textAlign = "center";
+    ctx.globalAlpha = 0.8;
+    ctx.fillText(hitStreak + "x COMBO!", W/2, kbY - 20);
+    ctx.globalAlpha = 1;
+  }
+
+  // End screen shake
+  if (shakeAmount > 0.5) ctx.restore();
+  shakeAmount *= 0.85;
 
   requestAnimationFrame(frame);
 }
@@ -1673,6 +1820,11 @@ function startGame() {
   document.getElementById("audience-sub").textContent = "";
 
   initHands();
+  initAudio();
+  particles = [];
+  shakeAmount = 0;
+  hitStreak = 0;
+  lastHitTime = 0;
   gameActive = true;
 
   if (timerInterval) clearInterval(timerInterval);
