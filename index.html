@@ -231,7 +231,7 @@ body {
 
 /* ---- Start Screen ---- */
 #start-screen {
-  position: fixed; inset: 0; background: var(--bg);
+  position: fixed; inset: 0; background: rgba(13,10,20,0.88);
   display: flex; flex-direction: column; justify-content: center; align-items: center;
   z-index: 100; gap: 16px;
 }
@@ -244,8 +244,29 @@ body {
   font-size: 1rem; color: var(--muted); max-width: 480px;
   text-align: center; line-height: 1.6;
 }
-.start-controls {
+.start-controls, .tutorial-box-placeholder {
   display: flex; gap: 20px; margin: 8px 0;
+}
+.tutorial-box {
+  display: flex; gap: 0; margin: 16px 0 10px; background: rgba(30,22,48,0.7);
+  border: 1px solid #3a2a5a; border-radius: 10px; overflow: hidden; max-width: 500px;
+}
+.tutorial-section { flex: 1; padding: 14px 18px; text-align: center; }
+.tutorial-divider { width: 1px; background: #3a2a5a; }
+.tutorial-label { font-size: 0.65rem; letter-spacing: 0.15em; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; }
+.tutorial-keys { display: flex; gap: 12px; justify-content: center; margin-bottom: 6px; }
+.tutorial-keys .key-letter { width: 48px; height: 48px; line-height: 48px; }
+.tutorial-keys .key-desc { font-size: 0.6rem; }
+.tutorial-tip { font-size: 0.7rem; color: var(--cyan); font-style: italic; }
+.how-it-works {
+  max-width: 440px; text-align: center; font-size: 0.8rem; color: var(--muted);
+  line-height: 1.6; margin: 10px 0;
+}
+.how-it-works p { margin-bottom: 8px; }
+.how-it-works strong { color: var(--text); }
+.try-hint {
+  font-size: 0.7rem; color: var(--purple); margin-top: 8px;
+  animation: pulse 1.5s ease infinite;
 }
 .start-controls .key-letter { width: 48px; height: 48px; line-height: 48px; font-size: 1.4rem; }
 .start-controls .key-desc { font-size: 0.6rem; }
@@ -332,17 +353,36 @@ body {
 <div id="start-screen">
   <h1>SLOP</h1>
   <p class="tagline">You're an AI trying to write a blog post.<br>
-  You control two ragdoll hands with four keys.<br>
+  You have two floppy ragdoll arms dangling over a keyboard.<br>
   Try to type something coherent. You won't.</p>
-  <div class="start-controls">
-    <div class="key-hint"><div class="key-letter">S</div><div class="key-desc">Left up</div></div>
-    <div class="key-hint"><div class="key-letter">L</div><div class="key-desc">Left down</div></div>
-    <div class="key-hint"><div class="key-letter">O</div><div class="key-desc">Right up</div></div>
-    <div class="key-hint"><div class="key-letter">P</div><div class="key-desc">Right down</div></div>
+
+  <div class="tutorial-box">
+    <div class="tutorial-section">
+      <div class="tutorial-label">LEFT HAND</div>
+      <div class="tutorial-keys">
+        <div class="key-hint"><div class="key-letter" style="font-size:1.6rem">S</div><div class="key-desc">swing left arm UP</div></div>
+        <div class="key-hint"><div class="key-letter" style="font-size:1.6rem">L</div><div class="key-desc">swing left arm DOWN</div></div>
+      </div>
+      <div class="tutorial-tip">Alternate S-L rapidly to sweep across keys</div>
+    </div>
+    <div class="tutorial-divider"></div>
+    <div class="tutorial-section">
+      <div class="tutorial-label">RIGHT HAND</div>
+      <div class="tutorial-keys">
+        <div class="key-hint"><div class="key-letter" style="font-size:1.6rem">O</div><div class="key-desc">swing right arm UP</div></div>
+        <div class="key-hint"><div class="key-letter" style="font-size:1.6rem">P</div><div class="key-desc">swing right arm DOWN</div></div>
+      </div>
+      <div class="tutorial-tip">Alternate O-P rapidly to sweep across keys</div>
+    </div>
   </div>
-  <p class="how-to">Swing your ragdoll hands to mash keyboard keys. The S.L.A.P. detector is watching.<br>
-  Your floppy arms swing in arcs across the keyboard. Alternate S-L and O-P rapidly to create chaotic sweeps. The harder you mash, the more you type. Good luck.<br>60 seconds.</p>
+
+  <div class="how-it-works">
+    <p><strong>How it works:</strong> Two ragdoll arms dangle above a keyboard. When a fingertip smacks a key, that letter gets typed into your "blog post." Mash S-L to swing the left arm. Mash O-P to swing the right arm. When the arms hit keys, you'll hear a beep and see sparks.</p>
+    <p>The <strong>S.L.A.P. detector</strong> (Semantic Laziness And Posturing) watches everything you type. If you accidentally produce AI buzzwords like "synergy" or "leverage," it roasts you. 60 seconds. Go.</p>
+  </div>
+
   <button class="start-btn" id="start-btn">START SLOPPING</button>
+  <div class="try-hint" id="try-hint">Or just start mashing S-L-O-P right now to see the arms move ^</div>
 </div>
 
 <!-- ======== GAME OVER SCREEN ======== -->
@@ -1588,7 +1628,23 @@ function drawMonitor() {
 function frame() {
   ctx.clearRect(0, 0, W, H);
 
-  if (!gameActive) {
+  // Always render arms and keyboard (even on start screen for practice)
+  var isStartScreen = document.getElementById("start-screen").style.display !== "none";
+
+  if (!gameActive && !isStartScreen) {
+    requestAnimationFrame(frame);
+    return;
+  }
+
+  // On start screen: just render keyboard + arms, no events
+  if (isStartScreen) {
+    updateHand(leftHand);
+    updateHand(rightHand);
+    updateParticles();
+    drawKeyboard();
+    drawHand(leftHand, "#9b59b6");
+    drawHand(rightHand, "#e74c8c");
+    drawParticles();
     requestAnimationFrame(frame);
     return;
   }
@@ -1707,11 +1763,13 @@ function tick() {
 
 document.addEventListener("keydown", function(e) {
   var k = e.key.toLowerCase();
-  if (!gameActive) return;
-  if (k === "s" && !keysDown.s) { keysDown.s = true; leftHand.wristForce = -1; kp("key-s", true); }
-  if (k === "l" && !keysDown.l) { keysDown.l = true; leftHand.wristForce = 1; kp("key-l", true); }
-  if (k === "o" && !keysDown.o && !layoffActive) { keysDown.o = true; rightHand.wristForce = -1; kp("key-o", true); }
-  if (k === "p" && !keysDown.p && !layoffActive) { keysDown.p = true; rightHand.wristForce = 1; kp("key-p", true); }
+  // Allow arm movement on start screen for practice
+  var onStartScreen = document.getElementById("start-screen").style.display !== "none";
+  if (!gameActive && !onStartScreen) return;
+  if (k === "s" && !keysDown.s) { keysDown.s = true; leftHand.wristForce = -1; kp("key-s", true); if (onStartScreen) { initAudio(); playKeySound("s"); } }
+  if (k === "l" && !keysDown.l) { keysDown.l = true; leftHand.wristForce = 1; kp("key-l", true); if (onStartScreen) { initAudio(); playKeySound("l"); } }
+  if (k === "o" && !keysDown.o && !layoffActive) { keysDown.o = true; rightHand.wristForce = -1; kp("key-o", true); if (onStartScreen) { initAudio(); playKeySound("o"); } }
+  if (k === "p" && !keysDown.p && !layoffActive) { keysDown.p = true; rightHand.wristForce = 1; kp("key-p", true); if (onStartScreen) { initAudio(); playKeySound("p"); } }
   // Dismiss autocomplete on any control key
   if (acActive && (k==="s"||k==="l"||k==="o"||k==="p")) dismissAutocomplete();
   e.preventDefault();
