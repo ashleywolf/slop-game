@@ -1036,24 +1036,36 @@ menu.style.left=mx+'px';menu.style.top=my+'px';menu.style.display='block';
 function showStartScreen(){
 const s=document.getElementById('screen');
 s.innerHTML=`<h1>SLOP DEFENSE</h1>
-<p class="subtitle">Buzzwords are invading. Your castle is the last bastion of coherent thought.</p>
-<div class="tower-preview">
-<div><span class="emoji">\u{1F415}</span> Dog -- Barks at slop. Good boy.</div>
-<div><span class="emoji">\u{1F913}</span> Well Actually Guy -- Pedantic. Effective.</div>
-<div><span class="emoji">\u{1F986}</span> Rubber Duck -- Reveals hidden slop.</div>
-<div><span class="emoji">\u{1F3F0}</span> Trebuchet -- Medieval. Area damage. Watch for friendly fire.</div>
-<div><span class="emoji">\u2615</span> Coffee -- Makes everything faster.</div>
-<div><span class="emoji">\u{1F4A9}</span> Troll -- Chaos. Pure chaos.</div>
+<p class="subtitle">Buzzwords are marching toward your castle. Build towers to stop them.</p>
+<div style="text-align:left;max-width:420px;margin:0 auto 20px;background:#21262d;border-radius:8px;padding:16px 20px;line-height:1.8;font-size:14px;color:#e6edf3">
+<strong style="color:#f0883e;font-size:15px">HOW TO PLAY</strong><br>
+1. Click a tower in the left sidebar<br>
+2. Click a spot next to the path to place it<br>
+3. Towers auto-attack <span style="color:#ff6b35">orange enemies</span> walking by<br>
+4. Let <span style="color:#56d4dd">cyan words</span> pass -- those are good!<br>
+5. Click a placed tower to upgrade or sell it<br>
+6. Don't let slop reach your castle!
 </div>
-<div class="enemy-preview">
-<span>\u{1F7E0} Buzzwords</span>
-<span>\u{1F7E1} Thought Leaders</span>
-<span>\u{1F534} Slop Bombs</span>
-<span>\u{1F535} Stealth Slop</span>
-<span>\u2B1B Bosses</span>
-<span style="color:#56d4dd">\u{1FA75} Real Words (let these through!)</span>
+<div style="display:flex;gap:12px;max-width:420px;margin:0 auto 16px;font-size:11px">
+<div style="flex:1;background:#21262d;border-radius:6px;padding:10px">
+<div style="color:#f0883e;font-weight:600;margin-bottom:4px;font-size:12px">TOWERS</div>
+\u{1F415} Dog -- barks at slop<br>
+\u{1F913} Nerd -- pedantic damage<br>
+\u{1F986} Duck -- reveals hidden slop<br>
+\u{1F3F0} Trebuchet -- area damage<br>
+\u2615 Coffee -- speeds up allies<br>
+\u{1F4A9} Troll -- pure chaos
 </div>
-<button id="start-btn">CLICK TO DEFEND YOUR CASTLE</button>`;
+<div style="flex:1;background:#21262d;border-radius:6px;padding:10px">
+<div style="color:#ff6b35;font-weight:600;margin-bottom:4px;font-size:12px">ENEMIES</div>
+<span style="color:#ff6b35">\u25CF</span> Buzzwords (basic)<br>
+<span style="color:#ffc107">\u25CF</span> Thought Leaders (fast!)<br>
+<span style="color:#f85149">\u25CF</span> Slop Bombs (explode)<br>
+<span style="color:#56d4dd">\u25CF</span> Stealth Slop (hidden)<br>
+<span style="color:#b71c1c">\u25CF</span> Bosses (spawn minions)
+</div>
+</div>
+<button id="start-btn">START WAVE 1</button>`;
 document.getElementById('start-btn').addEventListener('click',()=>{
   initAudio();startGame();
 });
