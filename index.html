@@ -1,1232 +1,2386 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SLOP DEFENSE</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column}
-#game-container{display:flex;flex:1;min-height:0}
-#sidebar{width:220px;background:#161b22;border-right:1px solid #30363d;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
-#sidebar h2{text-align:center;padding:10px;color:#f0883e;font-size:14px;border-bottom:1px solid #30363d;letter-spacing:1px}
-.tower-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;border-bottom:1px solid #21262d;transition:background .15s}
-.tower-btn:hover{background:#21262d}
-.tower-btn.selected{background:#1f6feb33;border-left:3px solid #1f6feb}
-.tower-btn.disabled{opacity:.4;cursor:not-allowed}
-.tower-emoji{font-size:24px;width:32px;text-align:center}
-.tower-info{flex:1;min-width:0}
-.tower-name{font-size:12px;font-weight:600;color:#e6edf3}
-.tower-cost{font-size:11px;color:#f0883e}
-.tower-desc{font-size:10px;color:#8b949e;line-height:1.3}
-#canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-width:0}
-canvas{display:block;image-rendering:auto;max-width:100%;max-height:100%}
-#bottom-bar{height:44px;background:#161b22;border-top:1px solid #30363d;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:13px;flex-shrink:0}
-.bar-item{display:flex;align-items:center;gap:6px}
-.bar-label{color:#8b949e}
-.bar-value{color:#e6edf3;font-weight:600}
-.bar-value.gold{color:#f0883e}
-.bar-value.health{color:#3fb950}
-.bar-value.health.warn{color:#d29922}
-.bar-value.health.danger{color:#f85149}
-#wave-btn{background:#238636;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;transition:background .15s}
-#wave-btn:hover{background:#2ea043}
-#wave-btn:disabled{background:#21262d;color:#484f58;cursor:not-allowed}
-#overlay{position:fixed;inset:0;background:rgba(13,17,23,.92);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
-#overlay.hidden{display:none}
-#screen{max-width:650px;width:90%;padding:40px;text-align:center}
-#screen h1{font-size:48px;font-weight:800;color:#f0883e;text-shadow:0 0 30px rgba(240,136,62,.4);margin-bottom:8px;letter-spacing:2px}
-#screen .subtitle{color:#8b949e;font-size:15px;margin-bottom:28px;line-height:1.5}
-#screen .tower-preview{text-align:left;margin:0 auto 20px;max-width:420px}
-#screen .tower-preview div{padding:4px 0;font-size:13px;color:#c9d1d9}
-#screen .tower-preview span.emoji{margin-right:6px;font-size:16px}
-#screen .enemy-preview{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:28px}
-#screen .enemy-preview span{font-size:12px;color:#8b949e;padding:4px 10px;background:#21262d;border-radius:12px}
-#start-btn,#restart-btn,#endless-btn{background:#f0883e;color:#0d1117;border:none;padding:12px 32px;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;margin:6px;transition:transform .1s,background .15s}
-#start-btn:hover,#restart-btn:hover,#endless-btn:hover{background:#f09848;transform:scale(1.03)}
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;text-align:left;max-width:360px;margin:16px auto;font-size:13px}
-.stats-grid .label{color:#8b949e}.stats-grid .val{color:#e6edf3;font-weight:600;text-align:right}
-.grade{font-size:64px;font-weight:900;margin:10px 0}
-#upgrade-menu{position:absolute;background:#1c2128;border:1px solid #30363d;border-radius:8px;padding:12px;min-width:180px;z-index:50;display:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
-#upgrade-menu h4{font-size:13px;color:#e6edf3;margin-bottom:6px}
-#upgrade-menu .info{font-size:11px;color:#8b949e;margin-bottom:8px}
-#upgrade-menu button{display:block;width:100%;padding:6px;margin:4px 0;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600}
-#upgrade-btn{background:#238636;color:#fff}
-#upgrade-btn:hover{background:#2ea043}
-#upgrade-btn:disabled{background:#21262d;color:#484f58;cursor:not-allowed}
-#sell-btn{background:#b6232340;color:#f85149;border:1px solid #f8514930}
-#sell-btn:hover{background:#b6232360}
-#mute-btn{position:absolute;top:8px;right:8px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;z-index:10}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLOP DEFENSE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0d1117;
+            color: #c9d1d9;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #gameContainer {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        #sidebar {
+            width: 220px;
+            background: #161b22;
+            border-right: 2px solid #30363d;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        #mainGame {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        canvas {
+            border: 2px solid #30363d;
+            background: #0d1117;
+            cursor: crosshair;
+        }
+        #bottomBar {
+            width: 100%;
+            height: 60px;
+            background: #161b22;
+            border-top: 2px solid #30363d;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 20px;
+            font-size: 14px;
+        }
+        .tower-item {
+            background: #21262d;
+            border: 2px solid #30363d;
+            padding: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .tower-item:hover {
+            border-color: #58a6ff;
+            background: #30363d;
+        }
+        .tower-item.selected {
+            border-color: #ff6b35;
+            background: #30363d;
+        }
+        .tower-item .emoji {
+            font-size: 24px;
+        }
+        .tower-item .name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #58a6ff;
+        }
+        .tower-item .cost {
+            font-size: 12px;
+            color: #ffd700;
+        }
+        .tower-item .desc {
+            font-size: 10px;
+            color: #8b949e;
+            margin-top: 4px;
+        }
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 17, 23, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 40px;
+            overflow-y: auto;
+        }
+        .title {
+            font-size: 64px;
+            color: #ff6b35;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #ff6b35;
+        }
+        .subtitle {
+            font-size: 18px;
+            color: #8b949e;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 600px;
+        }
+        .howto {
+            background: #161b22;
+            border: 2px solid #30363d;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            max-width: 700px;
+            width: 100%;
+        }
+        .howto h2 {
+            color: #58a6ff;
+            margin-bottom: 15px;
+        }
+        .howto ol {
+            margin-left: 20px;
+        }
+        .howto li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 700px;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        .info-box {
+            background: #161b22;
+            border: 2px solid #30363d;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .info-box h3 {
+            color: #58a6ff;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .info-item {
+            font-size: 12px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn {
+            background: #ff6b35;
+            color: #fff;
+            border: none;
+            padding: 15px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: #ff8555;
+            transform: scale(1.05);
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        .stats {
+            background: #161b22;
+            border: 2px solid #30363d;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            max-width: 500px;
+        }
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        #comboDisplay {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #comboCount {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 10px #ffd700;
+        }
+        #comboText {
+            font-size: 18px;
+            color: #58a6ff;
+            margin-top: 5px;
+        }
+        .bar-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #penCooldownBar {
+            width: 100px;
+            height: 20px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+        #penCooldownFill {
+            height: 100%;
+            background: linear-gradient(90deg, #f85149, #ff6b35);
+            transition: width 0.1s linear;
+        }
+        #penLabel {
+            font-size: 12px;
+            color: #f85149;
+            font-weight: bold;
+        }
+        #nextWaveBtn {
+            background: #238636;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s;
+        }
+        #nextWaveBtn:hover {
+            background: #2ea043;
+        }
+        #nextWaveBtn:disabled {
+            background: #21262d;
+            color: #484f58;
+            cursor: not-allowed;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
-<div id="overlay">
-<div id="screen"></div>
-</div>
-<div id="game-container">
-<div id="sidebar">
-<h2>TOWERS</h2>
-</div>
-<div id="canvas-wrap">
-<canvas id="c"></canvas>
-<div id="upgrade-menu">
-<h4 id="um-title"></h4>
-<div class="info" id="um-info"></div>
-<button id="upgrade-btn">Upgrade</button>
-<button id="sell-btn">Sell</button>
-</div>
-<button id="mute-btn">Sound: ON</button>
-</div>
-</div>
-<div id="bottom-bar">
-<div class="bar-item"><span class="bar-label">Wave</span><span class="bar-value" id="b-wave">0/15</span></div>
-<div class="bar-item"><span class="bar-label">Gold</span><span class="bar-value gold" id="b-gold">100</span></div>
-<div class="bar-item"><span class="bar-label">Castle</span><span class="bar-value health" id="b-health">100%</span></div>
-<div class="bar-item"><span class="bar-label">Score</span><span class="bar-value" id="b-score">0</span></div>
-<div class="bar-item"><span class="bar-label" id="b-timer-label"></span><span class="bar-value" id="b-timer"></span></div>
-<button id="wave-btn" disabled>NEXT WAVE</button>
-</div>
-<script>
-// ==================== CONSTANTS ====================
-const CW=800,CH=560,COLS=20,ROWS=14,CS=40;
-const BASE_SPEED=1.5;
-const WAVE_DELAY=12;
-const MAX_WAVE=15;
+    <div id="gameContainer">
+        <div id="sidebar">
+            <h2 style="color: #ff6b35; margin-bottom: 15px;">TOWERS</h2>
+            <div id="towerShop"></div>
+        </div>
+        <div id="mainGame">
+            <canvas id="gameCanvas" width="800" height="560"></canvas>
+            <div id="comboDisplay" class="hidden">
+                <div id="comboCount"></div>
+                <div id="comboText"></div>
+            </div>
+            <div id="startScreen">
+                <div class="title">SLOP DEFENSE</div>
+                <div class="subtitle">Buzzwords are attacking your castle. Fight back with absurd towers and a red pen.</div>
+                <div class="howto">
+                    <h2>HOW TO PLAY</h2>
+                    <ol>
+                        <li>Click a tower in the sidebar, then click the map to place it</li>
+                        <li>Towers auto-attack orange slop enemies marching along the path</li>
+                        <li>Click-and-drag the RED PEN to slash enemies directly (12s cooldown)</li>
+                        <li>Click cyan GOOD WORDS for power-ups, or let them pass for gold</li>
+                        <li>Keep your towers clean -- they get corrupted by nearby slop!</li>
+                        <li>Watch out for BUZZWORD FUSION -- clustered enemies merge into monsters</li>
+                    </ol>
+                </div>
+                <div class="info-grid">
+                    <div class="info-box">
+                        <h3>TOWERS</h3>
+                        <div class="info-item">🐕 Dog - Reliable damage, no friendly fire</div>
+                        <div class="info-item">🤓 Well Actually - High damage, slight friendly fire</div>
+                        <div class="info-item">🦆 Rubber Duck - Bounces, reveals stealth</div>
+                        <div class="info-item">🏗️ Trebuchet - Massive splash damage</div>
+                        <div class="info-item">☕ Coffee - Speeds up nearby towers</div>
+                        <div class="info-item">🧌 Troll - Chaotic damage, random shots</div>
+                    </div>
+                    <div class="info-box">
+                        <h3>ENEMIES</h3>
+                        <div class="info-item"><span style="color:#ff6b35">●</span> Buzzword - Basic slop</div>
+                        <div class="info-item"><span style="color:#cc5500">●</span> Corporate Phrase - Tanky</div>
+                        <div class="info-item"><span style="color:#ffd700">●</span> Thought Leader - Fast swarm</div>
+                        <div class="info-item"><span style="color:#00e5ff">●</span> Stealth Slop - Disguised</div>
+                        <div class="info-item"><span style="color:#ff4444">●</span> Slop Bomb - Explodes on death</div>
+                        <div class="info-item"><span style="color:#ff00ff">●</span> Boss - Big threat</div>
+                    </div>
+                </div>
+                <button class="btn" onclick="game.startGame()">START WAVE 1</button>
+            </div>
+            <div id="gameOverScreen" class="hidden"></div>
+        </div>
+    </div>
+    <div id="bottomBar">
+        <div class="bar-item"><strong>Wave:</strong> <span id="waveDisplay">1/15</span></div>
+        <div class="bar-item"><strong>Gold:</strong> <span id="goldDisplay" style="color:#ffd700">100</span></div>
+        <div class="bar-item"><strong>Castle:</strong> <span id="castleDisplay" style="color:#00ff00">100%</span></div>
+        <div class="bar-item"><strong>Combo:</strong> <span id="comboBarDisplay">x0</span></div>
+        <div class="bar-item">
+            <span id="penLabel">PEN</span>
+            <div id="penCooldownBar">
+                <div id="penCooldownFill" style="width: 100%"></div>
+            </div>
+        </div>
+        <button id="nextWaveBtn" onclick="game.startNextWave()">NEXT WAVE</button>
+    </div>
 
-// Path waypoints (pixel coords)
-const WAYPOINTS=[
-{x:20,y:100},{x:700,y:100},{x:700,y:260},{x:100,y:260},{x:100,y:420},{x:780,y:420}
-];
+    <script>
+        // GAME CONSTANTS
+        const GRID_WIDTH = 20;
+        const GRID_HEIGHT = 14;
+        const CELL_SIZE = 40;
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 560;
 
-// Path cells
-const pathCells=new Set();
-function initPathCells(){
-const segs=[[0,2,17,2],[17,3,17,5],[17,6,2,6],[2,7,2,9],[2,10,19,10]];
-for(const[x1,y1,x2,y2]of segs){
-const sx=Math.min(x1,x2),ex=Math.max(x1,x2),sy=Math.min(y1,y2),ey=Math.max(y1,y2);
-for(let x=sx;x<=ex;x++)for(let y=sy;y<=ey;y++)pathCells.add(x+','+y);
-}}
-initPathCells();
-
-function isPathCell(gx,gy){return pathCells.has(gx+','+gy)}
-function isValidPlacement(gx,gy){
-if(gx<0||gx>=COLS||gy<0||gy>=ROWS)return false;
-if(isPathCell(gx,gy))return false;
-const dirs=[[0,-1],[0,1],[-1,0],[1,0]];
-for(const[dx,dy]of dirs)if(isPathCell(gx+dx,gy+dy))return true;
-return false;
-}
-
-// ==================== TOWER DEFINITIONS ====================
-const TOWER_DEFS={
-dog:{name:'Dog',emoji:'\u{1F415}',cost:20,range:80,rate:1.2,dmg:8,desc:'Barks at slop. Good boy.',
-  projType:'woof',projText:'WOOF',friendlyFire:0,aoe:0,
-  upgrade:{cost:40,name:'Big Dog',dmg:15,range:100,desc:'Louder bark. More bite.'}},
-nerd:{name:'Well Actually Guy',emoji:'\u{1F913}',cost:45,range:100,rate:0.6,dmg:20,desc:'Pedantic. Effective.',
-  projType:'text',projText:'well actually...',friendlyFire:0.05,aoe:0,
-  upgrade:{cost:70,name:'Professor',dmg:35,range:120,desc:'Citation needed.'}},
-duck:{name:'Rubber Duck',emoji:'\u{1F986}',cost:35,range:90,rate:0.8,dmg:12,desc:'Reveals hidden slop.',
-  projType:'duck',projText:'\u{1F986}',friendlyFire:0,aoe:0,bounces:2,
-  upgrade:{cost:55,name:'Golden Duck',dmg:18,bounces:3,desc:'Extra bouncy.'}},
-trebuchet:{name:'Trebuchet',emoji:'\u{1F3F0}',cost:75,range:160,rate:0.3,dmg:45,desc:'Area damage. Watch for friendly fire!',
-  projType:'boulder',projText:'\u25CF',friendlyFire:1,aoe:30,
-  upgrade:{cost:100,name:'Superior Siege Engine',dmg:70,desc:'Flaming boulders.'}},
-coffee:{name:'Coffee Machine',emoji:'\u2615',cost:50,range:100,rate:0,dmg:0,desc:'Boosts nearby tower speed 50%.',
-  projType:null,friendlyFire:0,aoe:0,isSupport:true,
-  upgrade:{cost:80,name:'Espresso Machine',range:130,boostMult:0.75,desc:'Even faster. Even stronger.'}},
-troll:{name:'Troll',emoji:'\u{1F4A9}',cost:90,range:130,rate:1.0,dmg:25,desc:'Chaos. Pure chaos.',
-  projType:'emoji',friendlyFire:0.15,aoe:0,
-  upgrade:{cost:130,name:'Influencer',dmg:40,desc:'Hot takes every 15s. Explosions.'}}
-};
-
-const TOWER_ORDER=['dog','nerd','duck','trebuchet','coffee','troll'];
-const CHAOS_EMOJI=['\u{1F480}','\u{1F525}','\u{1F440}','\u{1F624}','\u{1F5FF}'];
-
-// ==================== ENEMY DEFINITIONS ====================
-const BUZZWORDS=['synergy','leverage','robust','paradigm','utilize','streamline','harness','disruptive','scalable','ideation','holistic','agile'];
-const CORP_PHRASES=['move-the-needle','circle-back','low-hanging-fruit','best-in-class','game-changing','deep-dive','value-add','thought-leader'];
-const THOUGHT_WORDS=['arguably','remarkably','notably','fundamentally','interestingly'];
-const STEALTH_WORDS=['innovative','strategic','comprehensive','optimized','dynamic'];
-const BOMB_WORDS=["it's-worth-noting",'at-the-end-of-the-day','moving-forward'];
-const BOSS_WORDS=['THOUGHT PIECE','LISTICLE','HOT TAKE','MANIFESTO','WHITEPAPER'];
-const GOOD_WORDS=['bug','fix','deploy','test','merge','ship','build','debug','patch','commit','refactor','lint','push','pull','rebase','grep'];
-
-function rnd(arr){return arr[Math.floor(Math.random()*arr.length)]}
-
-// ==================== WAVE DEFINITIONS ====================
-const WAVES=[
-null, // index 0 unused
-{enemies:[{t:'buzz',n:6},{t:'good',n:2}],interval:1500},
-{enemies:[{t:'buzz',n:10},{t:'good',n:3}],interval:1200},
-{enemies:[{t:'buzz',n:6},{t:'corp',n:4},{t:'good',n:3}],interval:1200},
-{enemies:[{t:'thought',n:10},{t:'buzz',n:4},{t:'good',n:3}],interval:400},
-{enemies:[{t:'boss',n:1},{t:'buzz',n:8},{t:'good',n:3}],interval:1200},
-{enemies:[{t:'buzz',n:8},{t:'corp',n:4},{t:'stealth',n:2},{t:'good',n:4}],interval:1100},
-{enemies:[{t:'thought',n:6},{t:'corp',n:5},{t:'bomb',n:2},{t:'good',n:4}],interval:1000},
-{enemies:[{t:'buzz',n:14},{t:'bomb',n:3},{t:'good',n:5}],interval:900},
-{enemies:[{t:'stealth',n:6},{t:'corp',n:6},{t:'good',n:4}],interval:1000},
-{enemies:[{t:'boss',n:2},{t:'buzz',n:10},{t:'good',n:5}],interval:1100},
-{enemies:[{t:'buzz',n:18},{t:'bomb',n:4},{t:'good',n:6}],interval:600},
-{enemies:[{t:'stealth',n:8},{t:'thought',n:8},{t:'good',n:5}],interval:700},
-{enemies:[{t:'corp',n:8},{t:'bomb',n:4},{t:'thought',n:6},{t:'good',n:5}],interval:800},
-{enemies:[{t:'buzz',n:8},{t:'corp',n:5},{t:'thought',n:5},{t:'stealth',n:4},{t:'bomb',n:3},{t:'good',n:6}],interval:700},
-{enemies:[{t:'boss',n:3},{t:'buzz',n:15},{t:'stealth',n:6},{t:'good',n:8}],interval:600},
-];
-
-// ==================== SOUND SYSTEM ====================
-let audioCtx=null,soundOn=true;
-function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)()}
-function playSound(type){
-if(!soundOn||!audioCtx)return;
-try{
-const now=audioCtx.currentTime;
-const g=audioCtx.createGain();g.connect(audioCtx.destination);
-switch(type){
-case'shoot':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.value=800+Math.random()*400;
-o.connect(g);g.gain.setValueAtTime(.15,now);g.gain.exponentialRampToValueAtTime(.001,now+.05);
-o.start(now);o.stop(now+.05);break}
-case'bark':{const n=audioCtx.createBufferSource();const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*.08,audioCtx.sampleRate);
-const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/d.length*3);
-n.buffer=buf;n.connect(g);g.gain.setValueAtTime(.2,now);g.gain.exponentialRampToValueAtTime(.001,now+.08);
-n.start(now);break}
-case'pop':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(600,now);
-o.frequency.exponentialRampToValueAtTime(200,now+.1);o.connect(g);
-g.gain.setValueAtTime(.15,now);g.gain.exponentialRampToValueAtTime(.001,now+.1);
-o.start(now);o.stop(now+.1);break}
-case'bossdeath':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.value=60;o.connect(g);
-g.gain.setValueAtTime(.3,now);g.gain.exponentialRampToValueAtTime(.001,now+.3);
-o.start(now);o.stop(now+.3);
-const n=audioCtx.createBufferSource();const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*.3,audioCtx.sampleRate);
-const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/d.length*4);
-n.buffer=buf;const g2=audioCtx.createGain();g2.connect(audioCtx.destination);
-g2.gain.setValueAtTime(.15,now);g2.gain.exponentialRampToValueAtTime(.001,now+.3);
-n.connect(g2);n.start(now);break}
-case'goodword':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(660,now);
-o.frequency.setValueAtTime(880,now+.05);o.connect(g);
-g.gain.setValueAtTime(.12,now);g.gain.exponentialRampToValueAtTime(.001,now+.1);
-o.start(now);o.stop(now+.1);break}
-case'slophit':{const o=audioCtx.createOscillator();o.type='sawtooth';o.frequency.value=100;o.connect(g);
-g.gain.setValueAtTime(.15,now);g.gain.exponentialRampToValueAtTime(.001,now+.2);
-o.start(now);o.stop(now+.2);break}
-case'place':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(200,now);
-o.frequency.exponentialRampToValueAtTime(100,now+.08);o.connect(g);
-g.gain.setValueAtTime(.2,now);g.gain.exponentialRampToValueAtTime(.001,now+.08);
-o.start(now);o.stop(now+.08);break}
-case'wavestart':{const o=audioCtx.createOscillator();o.type='square';o.frequency.value=300;o.connect(g);
-g.gain.setValueAtTime(.12,now);g.gain.exponentialRampToValueAtTime(.001,now+.2);
-o.start(now);o.stop(now+.2);break}
-case'waveclear':{[523,659,784].forEach((f,i)=>{const o=audioCtx.createOscillator();o.type='sine';
-o.frequency.value=f;const gi=audioCtx.createGain();gi.connect(audioCtx.destination);
-gi.gain.setValueAtTime(.1,now+i*.1);gi.gain.exponentialRampToValueAtTime(.001,now+i*.1+.15);
-o.connect(gi);o.start(now+i*.1);o.stop(now+i*.1+.15)});break}
-case'bossspawn':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.value=80;o.connect(g);
-g.gain.setValueAtTime(.2,now);g.gain.exponentialRampToValueAtTime(.001,now+.25);
-o.start(now);o.stop(now+.25);break}
-case'upgrade':{[440,554,659].forEach((f,i)=>{const o=audioCtx.createOscillator();o.type='sine';
-o.frequency.value=f;const gi=audioCtx.createGain();gi.connect(audioCtx.destination);
-gi.gain.setValueAtTime(.1,now+i*.07);gi.gain.exponentialRampToValueAtTime(.001,now+i*.07+.12);
-o.connect(gi);o.start(now+i*.07);o.stop(now+i*.07+.12)});break}
-case'bomb':{const n=audioCtx.createBufferSource();const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*.3,audioCtx.sampleRate);
-const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/d.length*5)*(1+Math.sin(i*.01)*0.5);
-n.buffer=buf;n.connect(g);g.gain.setValueAtTime(.25,now);g.gain.exponentialRampToValueAtTime(.001,now+.3);
-n.start(now);break}
-case'moo':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(200,now);
-const lfo=audioCtx.createOscillator();lfo.frequency.value=6;const lfoG=audioCtx.createGain();lfoG.gain.value=30;
-lfo.connect(lfoG);lfoG.connect(o.frequency);lfo.start(now);lfo.stop(now+.4);
-o.connect(g);g.gain.setValueAtTime(.15,now);g.gain.setValueAtTime(.15,now+.2);
-g.gain.exponentialRampToValueAtTime(.001,now+.4);o.start(now);o.stop(now+.4);break}
-case'hottake':{[200,252,300].forEach(f=>{const o=audioCtx.createOscillator();o.type='square';
-o.frequency.value=f;const gi=audioCtx.createGain();gi.connect(audioCtx.destination);
-gi.gain.setValueAtTime(.07,now);gi.gain.exponentialRampToValueAtTime(.001,now+.3);
-o.connect(gi);o.start(now);o.stop(now+.3)});break}
-case'sell':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(500,now);
-o.frequency.exponentialRampToValueAtTime(300,now+.1);o.connect(g);
-g.gain.setValueAtTime(.12,now);g.gain.exponentialRampToValueAtTime(.001,now+.1);
-o.start(now);o.stop(now+.1);break}
-}}catch(e){}}
-
-// ==================== GAME STATE ====================
-const G={
-state:'menu',wave:0,gold:100,score:0,castleHP:100,
-towers:[],enemies:[],projectiles:[],particles:[],floatTexts:[],coffeePickups:[],
-selectedType:null,selectedTower:null,
-waveTimer:0,waveActive:false,spawnQueue:[],spawnTimer:0,
-betweenWaves:false,countdown:0,
-endless:false,endlessWave:0,
-mouseX:0,mouseY:0,mouseGX:-1,mouseGY:-1,
-castleSlopWords:[],
-stats:{killed:0,goodSaved:0,goodLost:0,goldEarned:0,towerKills:{}},
-lastTime:0,
-highScores:JSON.parse(localStorage.getItem('slopDefenseHS')||'{"campaign":0,"endless":0}')
-};
-
-// ==================== CANVAS SETUP ====================
-const canvas=document.getElementById('c');
-const ctx=canvas.getContext('2d');
-canvas.width=CW;canvas.height=CH;
-
-// ==================== HELPERS ====================
-function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
-function lerp(a,b,t){return a+(b-a)*t}
-function cellCenter(gx,gy){return{x:gx*CS+CS/2,y:gy*CS+CS/2}}
-function toGrid(px,py){return{gx:Math.floor(px/CS),gy:Math.floor(py/CS)}}
-
-function getPathProgress(enemy){
-let total=0;
-for(let i=0;i<WAYPOINTS.length-1;i++){
-const segLen=dist(WAYPOINTS[i],WAYPOINTS[i+1]);
-if(i<enemy.wpIndex)total+=segLen;
-else if(i===enemy.wpIndex)total+=segLen*enemy.wpT;
-}
-return total;
-}
-
-function posOnPath(wpIndex,t){
-if(wpIndex>=WAYPOINTS.length-1)return{x:WAYPOINTS[WAYPOINTS.length-1].x,y:WAYPOINTS[WAYPOINTS.length-1].y};
-const a=WAYPOINTS[wpIndex],b=WAYPOINTS[wpIndex+1];
-return{x:lerp(a.x,b.x,t),y:lerp(a.y,b.y,t)};
-}
-
-// ==================== SPAWN HELPERS ====================
-function makeEnemy(type,extraHP){
-const hp=extraHP||1;
-let e={alive:true,wpIndex:0,wpT:0,x:WAYPOINTS[0].x,y:WAYPOINTS[0].y,
-  slowed:false,slowTimer:0,revealed:false,revealTimer:0,isGood:false,isBoss:false,
-  spawned:false,desperation:false,color:'#f0883e',radius:12,isStealth:false,isBomb:false};
-switch(type){
-case'buzz':Object.assign(e,{type:'buzz',word:rnd(BUZZWORDS),hp:25*hp,maxHP:25*hp,speed:1,value:8,color:'#f0883e',radius:12});break;
-case'corp':Object.assign(e,{type:'corp',word:rnd(CORP_PHRASES),hp:55*hp,maxHP:55*hp,speed:.7,value:15,color:'#c45a1a',radius:16});break;
-case'thought':Object.assign(e,{type:'thought',word:rnd(THOUGHT_WORDS),hp:12*hp,maxHP:12*hp,speed:2.2,value:4,color:'#e3b341',radius:9});break;
-case'stealth':Object.assign(e,{type:'stealth',word:rnd(STEALTH_WORDS),hp:35*hp,maxHP:35*hp,speed:1.1,value:20,color:'#58a6ff',radius:13,isStealth:true,revealTimer:120});break;
-case'bomb':Object.assign(e,{type:'bomb',word:rnd(BOMB_WORDS),hp:45*hp,maxHP:45*hp,speed:.8,value:12,color:'#f85149',radius:14,isBomb:true});break;
-case'boss':Object.assign(e,{type:'boss',word:rnd(BOSS_WORDS),hp:180*hp,maxHP:180*hp,speed:.35,value:40,color:'#6e1010',radius:22,isBoss:true});break;
-case'good':Object.assign(e,{type:'good',word:rnd(GOOD_WORDS),hp:999,maxHP:999,speed:1,value:0,color:'#56d4dd',radius:11,isGood:true});break;
-}
-return e;
-}
-
-function buildSpawnQueue(waveDef,hpMult){
-const q=[];
-for(const g of waveDef.enemies){
-for(let i=0;i<g.n;i++)q.push(g.t);
-}
-// shuffle but keep good words roughly mixed in
-for(let i=q.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[q[i],q[j]]=[q[j],q[i]]}
-return q.map(t=>makeEnemy(t,hpMult));
-}
-
-// ==================== TOWER CREATION ====================
-function placeTower(type,gx,gy){
-const def=TOWER_DEFS[type];
-const pos=cellCenter(gx,gy);
-const t={type,gx,gy,x:pos.x,y:pos.y,level:1,cooldown:0,kills:0,
-  disabled:false,disableTimer:0,
-  range:def.range,rate:def.rate,dmg:def.dmg,
-  friendlyFire:def.friendlyFire,aoe:def.aoe,
-  hotTakeTimer:type==='troll'?1800:0,
-  coffeeTimer:type==='coffee'?1200:0,
-  totalCost:def.cost,
-  bounces:def.bounces||0
-};
-return t;
-}
-
-// ==================== PROJECTILE CREATION ====================
-function fireProjectile(tower,target){
-const def=TOWER_DEFS[tower.type];
-let p={x:tower.x,y:tower.y,target,speed:5,dmg:tower.dmg,alive:true,
-  type:def.projType,text:def.projText,aoe:tower.aoe,friendlyFire:def.friendlyFire>=1,
-  bounces:tower.bounces||0,bouncesLeft:tower.bounces||0,
-  towerType:tower.type,isUpgraded:tower.level>1,
-  arcProgress:0,startX:tower.x,startY:tower.y,
-  targetX:target.x,targetY:target.y,
-  isCow:false,angle:0};
-// Trebuchet arc
-if(tower.type==='trebuchet'){
-  p.speed=3;p.targetX=target.x;p.targetY=target.y;
-  if(Math.random()<0.15){p.isCow=true;p.dmg*=2;p.text='\u{1F404}';playSound('moo')}
-}
-// Troll random direction
-if(tower.type==='troll'){
-  p.text=rnd(CHAOS_EMOJI);
-  if(Math.random()<0.2){
-    const angle=Math.random()*Math.PI*2;
-    p.target=null;p.vx=Math.cos(angle)*5;p.vy=Math.sin(angle)*5;
-  }
-}
-// Friendly fire check for nerd
-if(tower.type==='nerd'&&Math.random()<tower.friendlyFire){
-  const goods=G.enemies.filter(e=>e.alive&&e.isGood&&dist(tower,e)<tower.range);
-  if(goods.length)p.target=goods[Math.floor(Math.random()*goods.length)];
-}
-// Troll friendly fire
-if(tower.type==='troll'&&p.target&&Math.random()<tower.friendlyFire){
-  const goods=G.enemies.filter(e=>e.alive&&e.isGood&&dist(tower,e)<tower.range);
-  if(goods.length)p.target=goods[Math.floor(Math.random()*goods.length)];
-}
-// Nerd double damage to corp
-if(tower.type==='nerd'&&target.type==='corp')p.dmg*=2;
-return p;
-}
-
-// ==================== PARTICLES ====================
-function spawnParticles(x,y,color,count){
-for(let i=0;i<count;i++){
-const angle=Math.random()*Math.PI*2,spd=1+Math.random()*3;
-G.particles.push({x,y,vx:Math.cos(angle)*spd,vy:Math.sin(angle)*spd,
-  life:30+Math.random()*20,maxLife:50,color,radius:2+Math.random()*2});
-}}
-
-function spawnFloatText(x,y,text,color){
-G.floatTexts.push({x,y,text,color,life:60,maxLife:60});
-}
-
-// ==================== GAME LOGIC ====================
-function updateEnemies(dt){
-for(const e of G.enemies){
-if(!e.alive)continue;
-// Stealth reveal timer
-if(e.isStealth&&!e.revealed){
-  e.revealTimer-=dt;
-  if(e.revealTimer<=0){e.revealed=true;e.color='#f0883e'}
-  // Check rubber duck proximity
-  for(const t of G.towers){
-    if(t.type==='duck'&&!t.disabled&&dist(t,e)<t.range){e.revealed=true;e.color='#f0883e';break}
-  }
-}
-// Slow
-if(e.slowed){e.slowTimer-=dt;if(e.slowTimer<=0)e.slowed=false}
-// Movement
-const spd=BASE_SPEED*e.speed*(e.slowed?.5:1)*(e.desperation?1.5:1)*dt/16.67;
-if(e.wpIndex>=WAYPOINTS.length-1){
-  // Reached castle
-  if(e.isGood){
-    G.castleHP=Math.min(100,G.castleHP+2);
-    G.gold+=5;G.stats.goodSaved++;G.stats.goldEarned+=5;
-    spawnFloatText(e.x,e.y-10,'+5 +2%','#56d4dd');
-    playSound('goodword');
-  }else{
-    G.castleHP-=3;
-    G.castleSlopWords.push({word:e.word,x:Math.random()*60-30,y:Math.random()*40-20,rot:Math.random()*.6-.3});
-    spawnFloatText(e.x,e.y-10,'-3%','#f85149');
-    playSound('slophit');
-  }
-  e.alive=false;continue;
-}
-const wp=WAYPOINTS[e.wpIndex+1];
-const segDist=dist(WAYPOINTS[e.wpIndex],wp);
-e.wpT+=spd/segDist;
-if(e.wpT>=1){e.wpT=0;e.wpIndex++;if(e.wpIndex>=WAYPOINTS.length-1){e.wpT=1}}
-const pos=posOnPath(e.wpIndex,e.wpT);
-e.x=pos.x;e.y=pos.y;
-// Boss desperation
-if(e.isBoss&&!e.desperation&&e.hp<=e.maxHP*0.25){
-  e.desperation=true;
-  for(let i=0;i<2;i++){const m=makeEnemy('buzz',G.endless?1+G.endlessWave*0.15:1);m.wpIndex=e.wpIndex;m.wpT=e.wpT;m.x=e.x;m.y=e.y;G.enemies.push(m)}
-}
-if(e.isBoss&&!e.spawned&&e.hp<=e.maxHP*0.5){
-  e.spawned=true;
-  for(let i=0;i<3;i++){const m=makeEnemy('buzz',G.endless?1+G.endlessWave*0.15:1);m.wpIndex=e.wpIndex;m.wpT=e.wpT;m.x=e.x;m.y=e.y;G.enemies.push(m)}
-}
-// Bomb pulse
-if(e.isBomb)e.pulsePhase=(e.pulsePhase||0)+dt*0.15;
-}}
-
-function updateTowers(dt){
-for(const t of G.towers){
-if(t.disabled){t.disableTimer-=dt;if(t.disableTimer<=0)t.disabled=false;continue}
-// Coffee machine boost calc
-let boostMult=1;
-for(const c of G.towers){
-  if(c.type==='coffee'&&!c.disabled&&c!==t&&dist(c,t)<c.range)
-    boostMult+=c.level>1?0.75:0.5;
-}
-// Coffee machine special
-if(t.type==='coffee'){
-  t.coffeeTimer-=dt*boostMult;
-  if(t.coffeeTimer<=0){
-    t.coffeeTimer=(t.level>1?720:1200);
-    // Spawn coffee on random path point
-    const wp=Math.floor(Math.random()*(WAYPOINTS.length-1));
-    const tt=Math.random();
-    const pos=posOnPath(wp,tt);
-    G.coffeePickups.push({x:pos.x,y:pos.y,life:600,radius:8});
-  }
-  continue;
-}
-// Troll hot take
-if(t.type==='troll'){
-  t.hotTakeTimer-=dt;
-  const interval=t.level>1?900:1800;
-  if(t.hotTakeTimer<=0){
-    t.hotTakeTimer=interval;
-    playSound('hottake');
-    for(const e of G.enemies){
-      if(e.alive&&!e.isGood){e.hp-=10;if(e.hp<=0)killEnemy(e,t)}
-    }
-    spawnFloatText(t.x,t.y-20,'HOT TAKE!','#f0883e');
-    // Screen flash effect
-    G.hotTakeFlash=10;
-  }
-}
-// Targeting
-if(t.rate===0)continue;
-t.cooldown-=dt*boostMult;
-if(t.cooldown>0)continue;
-// Find target
-let target=null,bestProg=-1;
-for(const e of G.enemies){
-  if(!e.alive)continue;
-  if(e.isGood)continue;
-  if(e.isStealth&&!e.revealed)continue;
-  if(dist(t,e)>t.range)continue;
-  const prog=getPathProgress(e);
-  if(prog>bestProg){bestProg=prog;target=e}
-}
-if(!target)continue;
-t.cooldown=1000/t.rate;
-const p=fireProjectile(t,target);
-G.projectiles.push(p);
-if(t.type==='dog')playSound('bark');
-else playSound('shoot');
-}}
-
-function updateProjectiles(dt){
-for(const p of G.projectiles){
-if(!p.alive)continue;
-// Trebuchet arc
-if(p.towerType==='trebuchet'){
-  p.arcProgress+=dt*0.02;
-  if(p.arcProgress>=1){
-    p.alive=false;
-    // AOE damage
-    const aoeR=p.isUpgraded?40:30;
-    for(const e of G.enemies){
-      if(!e.alive)continue;
-      if(dist({x:p.targetX,y:p.targetY},e)<=aoeR){
-        if(e.isGood&&p.friendlyFire){
-          e.hp-=p.dmg;if(e.hp<=0)killGoodWord(e);
-        }else if(!e.isGood){
-          e.hp-=p.dmg;if(e.hp<=0)killEnemy(e,null);
+        // PATH DEFINITION
+        const PATH = [];
+        function generatePath() {
+            PATH.length = 0;
+            // Start at (0, 2) going right to (17, 2)
+            for (let x = 0; x <= 17; x++) {
+                PATH.push({x, y: 2});
+            }
+            // Turn down to (17, 5)
+            for (let y = 3; y <= 5; y++) {
+                PATH.push({x: 17, y});
+            }
+            // Go left to (2, 5)
+            for (let x = 16; x >= 2; x--) {
+                PATH.push({x, y: 5});
+            }
+            // Turn down to (2, 8)
+            for (let y = 6; y <= 8; y++) {
+                PATH.push({x: 2, y});
+            }
+            // Go right to (17, 8)
+            for (let x = 3; x <= 17; x++) {
+                PATH.push({x, y: 8});
+            }
+            // Turn down to (17, 11)
+            for (let y = 9; y <= 11; y++) {
+                PATH.push({x: 17, y});
+            }
+            // Go left to (14, 11) - castle at end
+            for (let x = 16; x >= 14; x--) {
+                PATH.push({x, y: 11});
+            }
         }
-      }
-    }
-    spawnParticles(p.targetX,p.targetY,p.isCow?'#8B4513':'#888',12);
-    playSound(p.isCow?'moo':'bomb');
-  }else{
-    const t2=p.arcProgress;
-    p.x=lerp(p.startX,p.targetX,t2);
-    p.y=lerp(p.startY,p.targetY,t2)-Math.sin(t2*Math.PI)*80;
-  }
-  continue;
-}
-// Homing or straight
-if(p.target&&p.target.alive){
-  const dx=p.target.x-p.x,dy=p.target.y-p.y;
-  const d=Math.hypot(dx,dy);
-  if(d<8){
-    // Hit
-    p.target.hp-=p.dmg;
-    if(p.target.hp<=0){
-      if(p.target.isGood)killGoodWord(p.target);
-      else killEnemy(p.target,null);
-    }
-    // Bounce (duck)
-    if(p.bouncesLeft>0&&!p.target.isGood){
-      p.bouncesLeft--;
-      let nearest=null,nd=Infinity;
-      for(const e of G.enemies){
-        if(!e.alive||e===p.target||e.isGood)continue;
-        if(e.isStealth&&!e.revealed)continue;
-        const dd=dist(p,e);if(dd<nd&&dd<120){nd=dd;nearest=e}
-      }
-      if(nearest){p.target=nearest}else{p.alive=false}
-    }else{
-      p.alive=false;
-      // Troll upgraded explosion
-      if(p.towerType==='troll'&&p.isUpgraded){
-        for(const e of G.enemies){
-          if(!e.alive||e.isGood)continue;
-          if(dist(p,e)<30){e.hp-=10;if(e.hp<=0)killEnemy(e,null)}
+        generatePath();
+
+        // ADJECTIVE FORMS FOR FUSION
+        const ADJECTIVES = {
+            'synergy': 'SYNERGISTIC',
+            'leverage': 'LEVERAGED',
+            'disruptive': 'DISRUPTIVE',
+            'scalable': 'SCALABLY',
+            'robust': 'ROBUSTLY',
+            'agile': 'AGILELY',
+            'paradigm': 'PARADIGMATIC',
+            'blockchain': 'BLOCKCHAIN-ENABLED',
+            'holistic': 'HOLISTICALLY',
+            'bandwidth': 'BANDWIDTH-OPTIMIZED',
+            'circle back': 'CIRCLED-BACK',
+            'move the needle': 'NEEDLE-MOVING',
+            'boil the ocean': 'OCEAN-BOILING',
+            'low-hanging fruit': 'LOW-HANGING',
+            'deep dive': 'DEEP-DIVING',
+            'hot take': 'HOT-TAKING',
+            'game changer': 'GAME-CHANGING',
+            '10x': '10X-ING',
+            'guru': 'GURU-LEVEL',
+            'visionary': 'VISIONARY',
+            'seems legit': 'LEGIT-SEEMING',
+            'trust me': 'TRUST-WORTHY',
+            'no brainer': 'NO-BRAINING',
+            'BOOM': 'BOOM',
+            '💣': 'EXPLOSIVE',
+            'CEO of Slop': 'CEO-LEVEL',
+            'Chief Buzzword Officer': 'CBO-GRADE'
+        };
+
+        // TOWER DEFINITIONS
+        const TOWER_TYPES = {
+            DOG: {
+                name: 'Dog',
+                emoji: '🐕',
+                cost: 25,
+                upgradeCost: 30,
+                range: 120,
+                damage: 8,
+                fireRate: 1200,
+                friendlyFire: 0,
+                description: 'Reliable damage, no friendly fire',
+                upgrade: {range: 140, damage: 12}
+            },
+            WELL_ACTUALLY: {
+                name: 'Well Actually Guy',
+                emoji: '🤓',
+                cost: 35,
+                upgradeCost: 40,
+                range: 100,
+                damage: 15,
+                fireRate: 2000,
+                friendlyFire: 0.05,
+                description: 'High damage, 5% friendly fire',
+                upgrade: {range: 115, damage: 23}
+            },
+            RUBBER_DUCK: {
+                name: 'Rubber Duck',
+                emoji: '🦆',
+                cost: 30,
+                upgradeCost: 35,
+                range: 110,
+                damage: 6,
+                fireRate: 1500,
+                friendlyFire: 0,
+                bounces: 2,
+                description: 'Bounces, reveals stealth, reduces corruption',
+                upgrade: {damage: 9, bounces: 3}
+            },
+            TREBUCHET: {
+                name: 'Trebuchet',
+                emoji: '🏗️',
+                cost: 50,
+                upgradeCost: 50,
+                range: 150,
+                damage: 25,
+                fireRate: 3000,
+                friendlyFire: 0.1,
+                splash: 60,
+                description: 'Massive area damage',
+                upgrade: {damage: 37, splash: 140}
+            },
+            COFFEE: {
+                name: 'Coffee Machine',
+                emoji: '☕',
+                cost: 40,
+                upgradeCost: 45,
+                range: 0,
+                buffRange: 100,
+                speedBoost: 0.25,
+                description: 'Speeds nearby towers by 25%',
+                upgrade: {buffRange: 120, speedBoost: 0.35}
+            },
+            TROLL: {
+                name: 'Troll',
+                emoji: '🧌',
+                cost: 45,
+                upgradeCost: 50,
+                range: 130,
+                damage: 12,
+                fireRate: 1000,
+                friendlyFire: 0.15,
+                description: 'Chaotic, random emoji projectiles',
+                upgrade: {range: 150, damage: 18, doubleShot: 0.1}
+            }
+        };
+
+        // ENEMY DEFINITIONS
+        const ENEMY_TYPES = {
+            BUZZWORD: {
+                name: 'Buzzword',
+                color: '#ff6b35',
+                hp: 30,
+                speed: 1.2,
+                gold: 8,
+                words: ['synergy', 'leverage', 'disruptive', 'scalable', 'robust', 'agile', 'paradigm', 'blockchain', 'holistic', 'bandwidth']
+            },
+            CORPORATE: {
+                name: 'Corporate Phrase',
+                color: '#cc5500',
+                hp: 80,
+                speed: 0.8,
+                gold: 15,
+                words: ['circle back', 'move the needle', 'boil the ocean', 'low-hanging fruit', 'deep dive']
+            },
+            THOUGHT_LEADER: {
+                name: 'Thought Leader',
+                color: '#ffd700',
+                hp: 20,
+                speed: 2.0,
+                gold: 5,
+                words: ['hot take', 'game changer', '10x', 'guru', 'visionary']
+            },
+            STEALTH: {
+                name: 'Stealth Slop',
+                color: '#00e5ff',
+                revealColor: '#ff6b35',
+                hp: 45,
+                speed: 1.0,
+                gold: 12,
+                stealth: true,
+                words: ['seems legit', 'trust me', 'no brainer']
+            },
+            SLOP_BOMB: {
+                name: 'Slop Bomb',
+                color: '#ff4444',
+                hp: 50,
+                speed: 0.9,
+                gold: 18,
+                explodes: true,
+                words: ['BOOM', '💣']
+            },
+            BOSS: {
+                name: 'Boss',
+                color: '#ff00ff',
+                hp: 300,
+                speed: 0.6,
+                gold: 50,
+                boss: true,
+                words: ['CEO of Slop', 'Chief Buzzword Officer']
+            }
+        };
+
+        // GOOD WORD DEFINITIONS
+        const GOOD_WORDS = ['bug', 'fix', 'deploy', 'test', 'merge', 'ship', 'build', 'debug', 'patch', 'commit', 'refactor', 'lint', 'push', 'pull', 'rebase', 'grep'];
+
+        // AUDIO CONTEXT
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
         }
-        spawnParticles(p.x,p.y,'#f0883e',6);
-      }
-    }
-    spawnParticles(p.x,p.y,'#fff',3);
-  }else{
-    p.x+=dx/d*p.speed*dt/16.67*1.5;
-    p.y+=dy/d*p.speed*dt/16.67*1.5;
-  }
-}else if(p.vx!==undefined){
-  // Straight line (random troll)
-  p.x+=p.vx*dt/16.67;p.y+=p.vy*dt/16.67;
-  // Check hits
-  for(const e of G.enemies){
-    if(!e.alive)continue;
-    if(dist(p,e)<12){
-      if(e.isGood){e.hp-=p.dmg;if(e.hp<=0)killGoodWord(e)}
-      else{e.hp-=p.dmg;if(e.hp<=0)killEnemy(e,null)}
-      p.alive=false;spawnParticles(p.x,p.y,'#fff',3);break;
-    }
-  }
-  if(p.x<-20||p.x>CW+20||p.y<-20||p.y>CH+20)p.alive=false;
-}else{
-  p.alive=false;
-}
-}}
 
-function killEnemy(e,tower){
-if(!e.alive)return;
-e.alive=false;G.gold+=e.value;G.score+=e.value*10;G.stats.killed++;G.stats.goldEarned+=e.value;
-if(tower){tower.kills++;G.stats.towerKills[tower.type]=(G.stats.towerKills[tower.type]||0)+1}
-spawnParticles(e.x,e.y,e.color,8);
-spawnFloatText(e.x,e.y-15,'+'+e.value,'#f0883e');
-if(e.isBoss)playSound('bossdeath');else playSound('pop');
-// Dog fetch bonus
-if(tower&&tower.type==='dog'&&Math.random()<0.15){
-  G.gold+=5;G.stats.goldEarned+=5;
-  spawnFloatText(e.x,e.y-30,'FETCH! +5','#e3b341');
-}
-// Slop bomb explosion
-if(e.isBomb){
-  playSound('bomb');
-  spawnParticles(e.x,e.y,'#f85149',15);
-  for(const t of G.towers){
-    if(dist(t,e)<60){t.disabled=true;t.disableTimer=180}
-  }
-  spawnFloatText(e.x,e.y-25,'BOOM!','#f85149');
-}
-}
+        function playSound(type) {
+            if (!audioCtx) initAudio();
+            
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            switch(type) {
+                case 'towerShoot':
+                    osc.frequency.value = 200 + Math.random() * 200;
+                    osc.type = 'square';
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                    break;
+                case 'enemyDeath':
+                    osc.type = 'sawtooth';
+                    osc.frequency.value = 150;
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                    break;
+                case 'towerPlace':
+                    osc.frequency.value = 80;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                    break;
+                case 'penSlash':
+                    osc.type = 'whitenoise';
+                    osc.frequency.setValueAtTime(1000, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                    break;
+                case 'fusion':
+                    osc.frequency.value = 880;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                    break;
+                case 'goodWordActivate':
+                    const osc2 = audioCtx.createOscillator();
+                    osc2.connect(gain);
+                    osc.frequency.value = 660;
+                    osc2.frequency.value = 880;
+                    osc.type = 'sine';
+                    osc2.type = 'sine';
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc2.start(now);
+                    osc.stop(now + 0.2);
+                    osc2.stop(now + 0.2);
+                    break;
+                case 'comboBlip':
+                    osc.frequency.value = 440 + (game.comboCount * 20);
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                    break;
+                case 'waveStart':
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.exponentialRampToValueAtTime(400, now + 0.2);
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                    break;
+                case 'waveClear':
+                    const freqs = [261.63, 329.63, 392, 523.25];
+                    freqs.forEach((freq, i) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.frequency.value = freq;
+                        o.type = 'sine';
+                        const startTime = now + (i * 0.1);
+                        g.gain.setValueAtTime(0.15, startTime);
+                        g.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
+                        o.start(startTime);
+                        o.stop(startTime + 0.15);
+                    });
+                    return;
+                case 'gameOver':
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.5);
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                    break;
+            }
+        }
 
-function killGoodWord(e){
-if(!e.alive||!e.isGood)return;
-e.alive=false;G.gold-=10;G.castleHP-=3;G.stats.goodLost++;
-spawnParticles(e.x,e.y,'#56d4dd',8);
-spawnFloatText(e.x,e.y-15,'FRIENDLY FIRE! -10','\u{1F534}');
-playSound('slophit');
-}
+        // PARTICLE SYSTEM
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.color = color;
+                this.life = 1;
+                this.decay = 0.02;
+            }
 
-function updateParticles(dt){
-G.particles=G.particles.filter(p=>{p.x+=p.vx*dt/16.67;p.y+=p.vy*dt/16.67;p.life-=dt/16.67;return p.life>0});
-G.floatTexts=G.floatTexts.filter(f=>{f.y-=0.8*dt/16.67;f.life-=dt/16.67;return f.life>0});
-}
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.2;
+                this.life -= this.decay;
+                return this.life > 0;
+            }
 
-function updateCoffeePickups(dt){
-G.coffeePickups=G.coffeePickups.filter(c=>{
-  c.life-=dt/16.67;
-  if(c.life<=0)return false;
-  for(const e of G.enemies){
-    if(!e.alive)continue;
-    if(dist(c,e)<15){
-      // Slow all enemies for 3 seconds
-      for(const e2 of G.enemies){if(e2.alive){e2.slowed=true;e2.slowTimer=180}}
-      spawnFloatText(c.x,c.y-10,'COFFEE!','#8B4513');
-      return false;
-    }
-  }
-  return true;
-});
-}
+            draw(ctx) {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - 2, this.y - 2, 4, 4);
+                ctx.globalAlpha = 1;
+            }
+        }
 
-function updateWave(dt){
-if(G.betweenWaves){
-  G.countdown-=dt/1000;
-  if(G.countdown<=0){startWave();G.betweenWaves=false}
-  return;
-}
-if(!G.waveActive)return;
-// Spawn from queue
-if(G.spawnQueue.length>0){
-  G.spawnTimer-=dt;
-  if(G.spawnTimer<=0){
-    const e=G.spawnQueue.shift();
-    G.enemies.push(e);
-    if(e.isBoss)playSound('bossspawn');
-    G.spawnTimer=G.currentInterval;
-  }
-}
-// Check wave complete
-if(G.spawnQueue.length===0&&G.enemies.filter(e=>e.alive).length===0){
-  G.waveActive=false;
-  playSound('waveclear');
-  if(G.wave>=MAX_WAVE&&!G.endless){
-    G.state='victory';showEndScreen(true);
-  }else{
-    G.betweenWaves=true;G.countdown=WAVE_DELAY;
-  }
-}
-}
+        // FLOATING TEXT
+        class FloatingText {
+            constructor(x, y, text, color) {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.color = color;
+                this.life = 1;
+                this.decay = 0.015;
+            }
 
-function startWave(){
-G.wave++;
-let waveDef,hpMult=1;
-if(G.wave<=MAX_WAVE){
-  waveDef=WAVES[G.wave];
-}else{
-  G.endlessWave=G.wave-MAX_WAVE;
-  hpMult=1+G.endlessWave*0.2;
-  // Generate random wave
-  const types=['buzz','buzz','buzz','corp','thought','stealth','bomb'];
-  const n=10+G.endlessWave*3;
-  const enemies=[{t:'good',n:Math.min(3+Math.floor(G.endlessWave/2),10)}];
-  if(G.endlessWave%5===0)enemies.push({t:'boss',n:1+Math.floor(G.endlessWave/5)});
-  for(let i=0;i<n;i++)enemies.push({t:rnd(types),n:1});
-  waveDef={enemies,interval:Math.max(300,800-G.endlessWave*20)};
-}
-G.spawnQueue=buildSpawnQueue(waveDef,hpMult);
-G.spawnTimer=0;
-G.currentInterval=waveDef.interval;
-G.waveActive=true;
-playSound('wavestart');
-}
+            update() {
+                this.y -= 1;
+                this.life -= this.decay;
+                return this.life > 0;
+            }
 
-function skipToNextWave(){
-if(G.betweenWaves){
-  G.gold+=15;G.stats.goldEarned+=15;
-  spawnFloatText(CW/2,CH/2,'+15 BONUS!','#e3b341');
-  G.betweenWaves=false;
-  startWave();
-}
-}
+            draw(ctx) {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.font = 'bold 16px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.globalAlpha = 1;
+            }
+        }
 
-// ==================== RENDERING ====================
-function render(){
-ctx.clearRect(0,0,CW,CH);
-// Background
-ctx.fillStyle='#0d1117';ctx.fillRect(0,0,CW,CH);
-// Path
-drawPath();
-// Grid overlay when placing
-if(G.selectedType)drawGrid();
-// Coffee pickups
-for(const c of G.coffeePickups){
-  ctx.fillStyle='#8B451380';ctx.beginPath();ctx.arc(c.x,c.y,c.radius,0,Math.PI*2);ctx.fill();
-  ctx.font='12px sans-serif';ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText('\u2615',c.x,c.y+4);
-}
-// Towers
-for(const t of G.towers)drawTower(t);
-// Range indicator for selected/hovered tower
-if(G.selectedTower&&G.state==='playing'){
-  ctx.strokeStyle='#1f6feb40';ctx.lineWidth=1;ctx.beginPath();
-  ctx.arc(G.selectedTower.x,G.selectedTower.y,G.selectedTower.range,0,Math.PI*2);ctx.stroke();
-}
-// Placement preview
-if(G.selectedType&&G.mouseGX>=0){
-  const def=TOWER_DEFS[G.selectedType];
-  const valid=isValidPlacement(G.mouseGX,G.mouseGY)&&!G.towers.some(t=>t.gx===G.mouseGX&&t.gy===G.mouseGY)&&G.gold>=def.cost;
-  const c=cellCenter(G.mouseGX,G.mouseGY);
-  ctx.strokeStyle=valid?'#238636':'#f85149';ctx.lineWidth=2;
-  ctx.strokeRect(G.mouseGX*CS,G.mouseGY*CS,CS,CS);
-  if(valid){
-    ctx.strokeStyle='#23863640';ctx.lineWidth=1;ctx.beginPath();
-    ctx.arc(c.x,c.y,def.range,0,Math.PI*2);ctx.stroke();
-  }
-}
-// Enemies (sorted by progress for layering)
-const sortedEnemies=[...G.enemies].filter(e=>e.alive).sort((a,b)=>getPathProgress(a)-getPathProgress(b));
-for(const e of sortedEnemies)drawEnemy(e);
-// Projectiles
-for(const p of G.projectiles)if(p.alive)drawProjectile(p);
-// Particles
-for(const p of G.particles){
-  const a=p.life/p.maxLife;
-  ctx.globalAlpha=a;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.radius*a,0,Math.PI*2);ctx.fill();
-}
-ctx.globalAlpha=1;
-// Float texts
-for(const f of G.floatTexts){
-  const a=f.life/f.maxLife;
-  ctx.globalAlpha=a;ctx.fillStyle=f.color;ctx.font='bold 12px sans-serif';ctx.textAlign='center';
-  ctx.fillText(f.text,f.x,f.y);
-}
-ctx.globalAlpha=1;
-// Castle
-drawCastle();
-// AI source
-drawSource();
-// Hot take flash
-if(G.hotTakeFlash>0){
-  ctx.globalAlpha=G.hotTakeFlash/20;ctx.fillStyle='#f0883e';ctx.fillRect(0,0,CW,CH);
-  ctx.globalAlpha=1;G.hotTakeFlash-=1;
-}
-}
+        // PROJECTILE CLASS
+        class Projectile {
+            constructor(x, y, target, damage, tower, bounces = 0, originalTarget = null) {
+                this.x = x;
+                this.y = y;
+                this.target = target;
+                this.damage = damage;
+                this.tower = tower;
+                this.speed = 5;
+                this.color = this.getColorForTower(tower);
+                this.bounces = bounces;
+                this.bouncesLeft = bounces;
+                this.originalTarget = originalTarget || target;
+                this.hitTargets = new Set();
+                this.hitTargets.add(originalTarget ? originalTarget.id : target.id);
+            }
 
-function drawPath(){
-ctx.lineWidth=CS;ctx.strokeStyle='#21262d';ctx.lineCap='round';ctx.lineJoin='round';
-ctx.beginPath();ctx.moveTo(WAYPOINTS[0].x,WAYPOINTS[0].y);
-for(let i=1;i<WAYPOINTS.length;i++)ctx.lineTo(WAYPOINTS[i].x,WAYPOINTS[i].y);
-ctx.stroke();
-// Border
-ctx.lineWidth=CS+4;ctx.strokeStyle='#30363d20';
-ctx.beginPath();ctx.moveTo(WAYPOINTS[0].x,WAYPOINTS[0].y);
-for(let i=1;i<WAYPOINTS.length;i++)ctx.lineTo(WAYPOINTS[i].x,WAYPOINTS[i].y);
-ctx.stroke();
-// Re-draw main path on top
-ctx.lineWidth=CS-2;ctx.strokeStyle='#21262d';
-ctx.beginPath();ctx.moveTo(WAYPOINTS[0].x,WAYPOINTS[0].y);
-for(let i=1;i<WAYPOINTS.length;i++)ctx.lineTo(WAYPOINTS[i].x,WAYPOINTS[i].y);
-ctx.stroke();
-}
+            getColorForTower(tower) {
+                const colors = {
+                    'Dog': '#4a9eff',
+                    'Well Actually Guy': '#ffd700',
+                    'Rubber Duck': '#ffff00',
+                    'Trebuchet': '#ff4444',
+                    'Troll': '#00ff00'
+                };
+                return colors[tower.type] || '#ffffff';
+            }
 
-function drawGrid(){
-ctx.strokeStyle='#30363d30';ctx.lineWidth=0.5;
-for(let x=0;x<=CW;x+=CS){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,CH);ctx.stroke()}
-for(let y=0;y<=CH;y+=CS){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke()}
-// Highlight valid cells
-for(let gx=0;gx<COLS;gx++)for(let gy=0;gy<ROWS;gy++){
-  if(isValidPlacement(gx,gy)&&!G.towers.some(t=>t.gx===gx&&t.gy===gy)){
-    ctx.fillStyle='#238636'+(G.gold>=TOWER_DEFS[G.selectedType].cost?'18':'08');
-    ctx.fillRect(gx*CS,gy*CS,CS,CS);
-  }
-}
-}
+            update(enemies, towers) {
+                if (!this.target || this.target.dead) {
+                    if (this.bouncesLeft > 0) {
+                        return this.findBounceTarget(enemies);
+                    }
+                    return false;
+                }
 
-function drawTower(t){
-const def=TOWER_DEFS[t.type];
-// Base square
-ctx.fillStyle=t.disabled?'#484f58':'#161b22';
-ctx.fillRect(t.x-CS/2+2,t.y-CS/2+2,CS-4,CS-4);
-ctx.strokeStyle=t.disabled?'#484f58':'#30363d';ctx.lineWidth=1;
-ctx.strokeRect(t.x-CS/2+2,t.y-CS/2+2,CS-4,CS-4);
-// Emoji
-ctx.font=t.disabled?'16px sans-serif':'20px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-if(t.disabled){ctx.globalAlpha=0.4}
-ctx.fillText(def.emoji,t.x,t.y);
-if(t.disabled){ctx.globalAlpha=1}
-// Level indicator
-if(t.level>1){
-  ctx.fillStyle='#e3b341';ctx.font='bold 9px sans-serif';ctx.textAlign='center';
-  ctx.fillText('\u2605',t.x+12,t.y-12);
-}
-// Coffee steam
-if(t.type==='coffee'&&!t.disabled){
-  const time=Date.now()/300;
-  for(let i=0;i<3;i++){
-    const ox=Math.sin(time+i*2)*4;
-    const oy=-8-i*6-Math.sin(time*1.5+i)*3;
-    ctx.globalAlpha=0.3-i*0.08;ctx.fillStyle='#fff';
-    ctx.beginPath();ctx.arc(t.x+ox,t.y+oy,2,0,Math.PI*2);ctx.fill();
-  }
-  ctx.globalAlpha=1;
-  // Range circle
-  ctx.strokeStyle='#8B451320';ctx.lineWidth=1;ctx.beginPath();
-  ctx.arc(t.x,t.y,t.range,0,Math.PI*2);ctx.stroke();
-}
-}
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
 
-function drawEnemy(e){
-// Stealth: hidden unless revealed
-if(e.isStealth&&!e.revealed){
-  // Draw faintly for player hint
-  ctx.globalAlpha=0.15;
-}
-// Circle
-ctx.beginPath();ctx.arc(e.x,e.y,e.radius,0,Math.PI*2);
-if(e.isBomb){
-  const pulse=Math.sin((e.pulsePhase||0))*0.3+0.7;
-  ctx.fillStyle=e.color;ctx.globalAlpha=(ctx.globalAlpha||1)*pulse;
-}else{
-  ctx.fillStyle=e.color;
-}
-ctx.fill();
-// Good word glow
-if(e.isGood){
-  ctx.strokeStyle='#3fb950';ctx.lineWidth=2;ctx.stroke();
-  ctx.shadowColor='#56d4dd';ctx.shadowBlur=8;
-  ctx.beginPath();ctx.arc(e.x,e.y,e.radius,0,Math.PI*2);ctx.stroke();
-  ctx.shadowBlur=0;
-}
-// HP bar (not for good words)
-if(!e.isGood&&e.hp<e.maxHP){
-  const barW=e.radius*2,barH=3;
-  const bx=e.x-barW/2,by=e.y-e.radius-6;
-  ctx.fillStyle='#21262d';ctx.fillRect(bx,by,barW,barH);
-  const pct=e.hp/e.maxHP;
-  ctx.fillStyle=pct>0.5?'#3fb950':pct>0.25?'#d29922':'#f85149';
-  ctx.fillRect(bx,by,barW*pct,barH);
-}
-// Word text
-ctx.fillStyle=e.isGood?'#0d1117':'#fff';
-ctx.font=(e.isBoss?'bold 8':'7')+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-const displayWord=e.word.length>12?e.word.substring(0,11)+'..':e.word;
-ctx.fillText(displayWord,e.x,e.y);
-ctx.globalAlpha=1;
-}
+                if (dist < this.speed + 5) {
+                    this.hit(enemies, towers);
+                    if (this.bouncesLeft > 0) {
+                        return this.findBounceTarget(enemies);
+                    }
+                    return false;
+                }
 
-function drawProjectile(p){
-if(p.towerType==='trebuchet'){
-  ctx.font='14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(p.isCow?'\u{1F404}':p.isUpgraded?'\u{1F525}':'\u25CF',p.x,p.y);
-  return;
-}
-if(p.type==='woof'){
-  ctx.fillStyle='#e3b341';ctx.font='bold 8px sans-serif';ctx.textAlign='center';
-  ctx.fillText('WOOF',p.x,p.y);
-}else if(p.type==='text'){
-  ctx.fillStyle='#c9d1d9';ctx.font='7px sans-serif';ctx.textAlign='center';
-  ctx.fillText(p.text,p.x,p.y);
-}else if(p.type==='duck'){
-  ctx.font='10px sans-serif';ctx.textAlign='center';
-  ctx.fillText('\u{1F986}',p.x,p.y);
-}else if(p.type==='emoji'){
-  ctx.font='12px sans-serif';ctx.textAlign='center';
-  ctx.fillText(p.text,p.x,p.y);
-}
-}
+                this.x += (dx / dist) * this.speed;
+                this.y += (dy / dist) * this.speed;
+                return true;
+            }
 
-function drawCastle(){
-const cx=WAYPOINTS[WAYPOINTS.length-1].x,cy=WAYPOINTS[WAYPOINTS.length-1].y;
-const hp=G.castleHP;
-// Castle body
-ctx.save();
-if(hp<50)ctx.translate(Math.random()*(50-hp)/25,0);
-if(hp<25){ctx.translate(cx,cy);ctx.rotate(Math.sin(Date.now()/500)*0.03);ctx.translate(-cx,-cy)}
-// Main structure
-ctx.fillStyle=hp>50?'#2d333b':hp>25?'#3d2b1b':'#4a1a1a';
-ctx.fillRect(cx-22,cy-25,44,35);
-// Towers
-ctx.fillRect(cx-26,cy-32,12,15);
-ctx.fillRect(cx+14,cy-32,12,15);
-// Battlements
-for(let i=0;i<5;i++)ctx.fillRect(cx-24+i*10,cy-37,6,6);
-// Door
-ctx.fillStyle='#161b22';
-ctx.fillRect(cx-6,cy-2,12,15);
-// Cracks at low HP
-if(hp<50){
-  ctx.strokeStyle='#0d1117';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(cx-10,cy-15);ctx.lineTo(cx-5,cy-5);ctx.lineTo(cx-12,cy+2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx+8,cy-20);ctx.lineTo(cx+12,cy-8);ctx.stroke();
-}
-// Fire at very low HP
-if(hp<25){
-  const t=Date.now()/100;
-  for(let i=0;i<3;i++){
-    const fx=cx-10+i*10+Math.sin(t+i)*3;
-    const fy=cy-30-Math.abs(Math.sin(t*1.5+i*2))*8;
-    ctx.fillStyle=i%2?'#f0883e':'#f85149';
-    ctx.beginPath();ctx.arc(fx,fy,3+Math.sin(t+i)*2,0,Math.PI*2);ctx.fill();
-  }
-}
-ctx.restore();
-// Slop words on castle
-ctx.font='6px sans-serif';ctx.fillStyle='#f0883e80';ctx.textAlign='center';
-for(const s of G.castleSlopWords.slice(-15)){
-  ctx.save();ctx.translate(cx+s.x,cy+s.y);ctx.rotate(s.rot);
-  ctx.fillText(s.word,0,0);ctx.restore();
-}
-// HP bar
-const barW=50,barH=5,bx=cx-barW/2,by=cy+18;
-ctx.fillStyle='#21262d';ctx.fillRect(bx,by,barW,barH);
-ctx.fillStyle=hp>50?'#3fb950':hp>25?'#d29922':'#f85149';
-ctx.fillRect(bx,by,barW*(hp/100),barH);
-ctx.strokeStyle='#30363d';ctx.lineWidth=0.5;ctx.strokeRect(bx,by,barW,barH);
-// Label
-ctx.fillStyle='#8b949e';ctx.font='8px sans-serif';ctx.textAlign='center';
-ctx.fillText('CASTLE',cx,cy+30);
-}
+            findBounceTarget(enemies) {
+                const candidates = enemies.filter(e => 
+                    !e.dead && 
+                    !e.isGoodWord && 
+                    !this.hitTargets.has(e.id) &&
+                    Math.hypot(e.x - this.x, e.y - this.y) < 80
+                );
 
-function drawSource(){
-const sx=WAYPOINTS[0].x,sy=WAYPOINTS[0].y;
-const pulse=Math.sin(Date.now()/400)*0.3+0.7;
-ctx.fillStyle=`rgba(240,136,62,${pulse*0.3})`;
-ctx.beginPath();ctx.arc(sx,sy,18,0,Math.PI*2);ctx.fill();
-ctx.fillStyle='#f0883e';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-ctx.fillText('AI',sx,sy);
-}
+                if (candidates.length > 0) {
+                    const newTarget = candidates[Math.floor(Math.random() * candidates.length)];
+                    this.target = newTarget;
+                    this.hitTargets.add(newTarget.id);
+                    this.bouncesLeft--;
+                    return true;
+                }
+                return false;
+            }
 
-// ==================== UI ====================
-function updateUI(){
-const waveText=G.endless?`${G.wave}`:`${G.wave}/${MAX_WAVE}`;
-document.getElementById('b-wave').textContent=waveText;
-document.getElementById('b-gold').textContent=G.gold;
-const hpEl=document.getElementById('b-health');
-hpEl.textContent=Math.max(0,Math.round(G.castleHP))+'%';
-hpEl.className='bar-value health'+(G.castleHP<=25?' danger':G.castleHP<=50?' warn':'');
-document.getElementById('b-score').textContent=G.score;
-// Timer
-const timerLabel=document.getElementById('b-timer-label');
-const timerVal=document.getElementById('b-timer');
-if(G.betweenWaves){
-  timerLabel.textContent='Next wave';timerVal.textContent=Math.ceil(G.countdown)+'s';
-}else if(G.waveActive){
-  timerLabel.textContent='Enemies';timerVal.textContent=G.spawnQueue.length+G.enemies.filter(e=>e.alive).length;
-}else{timerLabel.textContent='';timerVal.textContent=''}
-// Wave button
-const btn=document.getElementById('wave-btn');
-if(G.betweenWaves){btn.disabled=false;btn.textContent='NEXT WAVE (+15)';}
-else if(!G.waveActive&&G.wave===0){btn.disabled=false;btn.textContent='START WAVE 1';}
-else{btn.disabled=true;btn.textContent='FIGHTING...';}
-// Tower buttons
-document.querySelectorAll('.tower-btn').forEach(b=>{
-  const type=b.dataset.type;
-  const def=TOWER_DEFS[type];
-  b.classList.toggle('disabled',G.gold<def.cost);
-});
-}
+            hit(enemies, towers) {
+                if (this.tower.type === 'Trebuchet') {
+                    const splashRange = this.tower.upgraded ? 140 : 60;
+                    enemies.forEach(enemy => {
+                        const dist = Math.hypot(enemy.x - this.target.x, enemy.y - this.target.y);
+                        if (dist < splashRange && !enemy.dead) {
+                            if (enemy.isGoodWord && Math.random() < this.tower.friendlyFire) {
+                                enemy.takeDamage(this.damage);
+                            } else if (!enemy.isGoodWord) {
+                                enemy.takeDamage(this.damage);
+                            }
+                        }
+                    });
+                } else {
+                    if (this.target.isGoodWord && this.tower.friendlyFire > 0 && Math.random() < this.tower.friendlyFire) {
+                        this.target.takeDamage(this.damage);
+                    } else if (!this.target.isGoodWord) {
+                        this.target.takeDamage(this.damage);
+                        if (this.tower.type === 'Rubber Duck' && this.target.stealth && !this.target.revealed) {
+                            this.target.revealed = true;
+                        }
+                    }
+                }
+            }
 
-function buildSidebar(){
-const sidebar=document.getElementById('sidebar');
-sidebar.innerHTML='<h2>TOWERS</h2>';
-for(const type of TOWER_ORDER){
-  const def=TOWER_DEFS[type];
-  const div=document.createElement('div');
-  div.className='tower-btn';div.dataset.type=type;
-  div.innerHTML=`<span class="tower-emoji">${def.emoji}</span><div class="tower-info"><div class="tower-name">${def.name}</div><div class="tower-cost">${def.cost} gold</div><div class="tower-desc">${def.desc}</div></div>`;
-  div.addEventListener('click',()=>{
-    if(G.state!=='playing')return;
-    if(G.selectedType===type){G.selectedType=null}
-    else{G.selectedType=type;G.selectedTower=null;hideUpgradeMenu()}
-    document.querySelectorAll('.tower-btn').forEach(b=>b.classList.toggle('selected',b.dataset.type===G.selectedType));
-  });
-  sidebar.appendChild(div);
-}
-}
+            draw(ctx) {
+                if (this.tower.corrupted >= 80) {
+                    ctx.globalAlpha = 0.6 + Math.random() * 0.4;
+                }
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
 
-function hideUpgradeMenu(){
-document.getElementById('upgrade-menu').style.display='none';
-G.selectedTower=null;
-}
+        // ENEMY CLASS
+        class Enemy {
+            constructor(type, wave) {
+                this.id = Math.random().toString(36);
+                this.type = type;
+                const typeData = ENEMY_TYPES[type];
+                this.maxHp = typeData.hp + (wave - 1) * (type === 'BOSS' ? 50 : 5);
+                this.hp = this.maxHp;
+                this.speed = typeData.speed;
+                this.gold = typeData.gold;
+                this.color = typeData.color;
+                this.pathIndex = 0;
+                this.x = PATH[0].x * CELL_SIZE + CELL_SIZE / 2;
+                this.y = PATH[0].y * CELL_SIZE + CELL_SIZE / 2;
+                this.radius = 15;
+                this.dead = false;
+                this.word = typeData.words[Math.floor(Math.random() * typeData.words.length)];
+                this.isGoodWord = false;
+                this.stealth = typeData.stealth || false;
+                this.revealed = false;
+                this.explodes = typeData.explodes || false;
+                this.boss = typeData.boss || false;
+                this.spawnedMinions = false;
+                this.fusionCount = 0;
+                this.proximityTimers = {};
+                this.slowedUntil = 0;
+                this.slowFactor = 1;
+                this.pushback = 0;
+            }
 
-function showUpgradeMenu(tower,screenX,screenY){
-G.selectedTower=tower;G.selectedType=null;
-document.querySelectorAll('.tower-btn').forEach(b=>b.classList.remove('selected'));
-const def=TOWER_DEFS[tower.type];
-const menu=document.getElementById('upgrade-menu');
-document.getElementById('um-title').textContent=def.emoji+' '+(tower.level>1?def.upgrade.name:def.name);
-const info=tower.level>1?'MAX LEVEL':`Kills: ${tower.kills}`;
-document.getElementById('um-info').textContent=info;
-const uBtn=document.getElementById('upgrade-btn');
-if(tower.level>1){
-  uBtn.textContent='MAX LEVEL';uBtn.disabled=true;
-}else{
-  const cost=def.upgrade.cost;
-  uBtn.textContent=`Upgrade: ${def.upgrade.name} (${cost}g)`;
-  uBtn.disabled=G.gold<cost;
-  uBtn.onclick=()=>{
-    if(G.gold<cost)return;
-    G.gold-=cost;tower.level=2;tower.totalCost+=cost;
-    if(def.upgrade.dmg)tower.dmg=def.upgrade.dmg;
-    if(def.upgrade.range)tower.range=def.upgrade.range;
-    if(def.upgrade.bounces)tower.bounces=def.upgrade.bounces;
-    if(tower.type==='coffee'){tower.range=def.upgrade.range||130}
-    playSound('upgrade');
-    showUpgradeMenu(tower,screenX,screenY);
-  };
-}
-const sellVal=Math.floor(tower.totalCost*0.5);
-const sBtn=document.getElementById('sell-btn');
-sBtn.textContent=`Sell (+${sellVal}g)`;
-sBtn.onclick=()=>{
-  G.gold+=sellVal;G.towers=G.towers.filter(t=>t!==tower);
-  playSound('sell');hideUpgradeMenu();
-};
-// Position menu
-const wrap=document.getElementById('canvas-wrap').getBoundingClientRect();
-const canvasRect=canvas.getBoundingClientRect();
-const scaleX=canvasRect.width/CW,scaleY=canvasRect.height/CH;
-let mx=canvasRect.left+tower.x*scaleX-wrap.left+20;
-let my=canvasRect.top+tower.y*scaleY-wrap.top-20;
-if(mx+200>wrap.width)mx-=220;
-if(my+150>wrap.height)my-=100;
-menu.style.left=mx+'px';menu.style.top=my+'px';menu.style.display='block';
-}
+            getDisplayColor() {
+                if (this.stealth && !this.revealed) {
+                    return ENEMY_TYPES.STEALTH.color;
+                }
+                if (this.stealth && this.revealed) {
+                    return ENEMY_TYPES.STEALTH.revealColor;
+                }
+                return this.color;
+            }
 
-// ==================== SCREENS ====================
-function showStartScreen(){
-const s=document.getElementById('screen');
-s.innerHTML=`<h1>SLOP DEFENSE</h1>
-<p class="subtitle">Buzzwords are marching toward your castle. Build towers to stop them.</p>
-<div style="text-align:left;max-width:420px;margin:0 auto 20px;background:#21262d;border-radius:8px;padding:16px 20px;line-height:1.8;font-size:14px;color:#e6edf3">
-<strong style="color:#f0883e;font-size:15px">HOW TO PLAY</strong><br>
-1. Click a tower in the left sidebar<br>
-2. Click a spot next to the path to place it<br>
-3. Towers auto-attack <span style="color:#ff6b35">orange enemies</span> walking by<br>
-4. Let <span style="color:#56d4dd">cyan words</span> pass -- those are good!<br>
-5. Click a placed tower to upgrade or sell it<br>
-6. Don't let slop reach your castle!
-</div>
-<div style="display:flex;gap:12px;max-width:420px;margin:0 auto 16px;font-size:11px">
-<div style="flex:1;background:#21262d;border-radius:6px;padding:10px">
-<div style="color:#f0883e;font-weight:600;margin-bottom:4px;font-size:12px">TOWERS</div>
-\u{1F415} Dog -- barks at slop<br>
-\u{1F913} Nerd -- pedantic damage<br>
-\u{1F986} Duck -- reveals hidden slop<br>
-\u{1F3F0} Trebuchet -- area damage<br>
-\u2615 Coffee -- speeds up allies<br>
-\u{1F4A9} Troll -- pure chaos
-</div>
-<div style="flex:1;background:#21262d;border-radius:6px;padding:10px">
-<div style="color:#ff6b35;font-weight:600;margin-bottom:4px;font-size:12px">ENEMIES</div>
-<span style="color:#ff6b35">\u25CF</span> Buzzwords (basic)<br>
-<span style="color:#ffc107">\u25CF</span> Thought Leaders (fast!)<br>
-<span style="color:#f85149">\u25CF</span> Slop Bombs (explode)<br>
-<span style="color:#56d4dd">\u25CF</span> Stealth Slop (hidden)<br>
-<span style="color:#b71c1c">\u25CF</span> Bosses (spawn minions)
-</div>
-</div>
-<button id="start-btn">START WAVE 1</button>`;
-document.getElementById('start-btn').addEventListener('click',()=>{
-  initAudio();startGame();
-});
-document.getElementById('overlay').classList.remove('hidden');
-}
+            takeDamage(amount) {
+                if (this.stealth && !this.revealed) {
+                    this.revealed = true;
+                }
+                this.hp -= amount;
+                if (this.hp <= 0 && !this.dead) {
+                    this.dead = true;
+                    this.onDeath();
+                }
+            }
 
-function showEndScreen(victory){
-const s=document.getElementById('screen');
-if(victory){
-  const hp=Math.round(G.castleHP);
-  const grade=hp>=90?'S':hp>=75?'A':hp>=60?'B':hp>=40?'C':hp>=20?'D':'F';
-  const gradeColor={S:'#3fb950',A:'#56d4dd',B:'#1f6feb',C:'#d29922',D:'#f0883e',F:'#f85149'}[grade];
-  let favTower='none';let maxK=0;
-  for(const[t,k]of Object.entries(G.stats.towerKills))if(k>maxK){maxK=k;favTower=TOWER_DEFS[t]?.emoji+' '+TOWER_DEFS[t]?.name}
-  s.innerHTML=`<h1 style="color:#3fb950">YOUR CASTLE STANDS</h1>
-  <div class="grade" style="color:${gradeColor}">${grade}</div>
-  <div class="stats-grid">
-  <span class="label">Castle health</span><span class="val">${hp}%</span>
-  <span class="label">Slop destroyed</span><span class="val">${G.stats.killed}</span>
-  <span class="label">Good words saved</span><span class="val">${G.stats.goodSaved}</span>
-  <span class="label">Good words lost</span><span class="val">${G.stats.goodLost}</span>
-  <span class="label">Gold earned</span><span class="val">${G.stats.goldEarned}</span>
-  <span class="label">Favorite tower</span><span class="val">${favTower}</span>
-  </div>
-  <button id="restart-btn">DEFEND AGAIN</button>
-  <button id="endless-btn">ENDLESS MODE</button>`;
-  if(G.score>G.highScores.campaign){G.highScores.campaign=G.score;localStorage.setItem('slopDefenseHS',JSON.stringify(G.highScores))}
-}else{
-  s.innerHTML=`<h1 style="color:#f85149">YOUR CASTLE HAS FALLEN</h1>
-  <p class="subtitle">It now exclusively publishes listicles about disrupting the synergy paradigm.</p>
-  <div class="stats-grid">
-  <span class="label">Survived to wave</span><span class="val">${G.wave}</span>
-  <span class="label">Slop destroyed</span><span class="val">${G.stats.killed}</span>
-  <span class="label">Score</span><span class="val">${G.score}</span>
-  </div>
-  <button id="restart-btn">TRY AGAIN</button>`;
-  const key=G.endless?'endless':'campaign';
-  if(G.score>G.highScores[key]){G.highScores[key]=G.score;localStorage.setItem('slopDefenseHS',JSON.stringify(G.highScores))}
-}
-document.getElementById('overlay').classList.remove('hidden');
-document.getElementById('restart-btn').addEventListener('click',()=>{startGame()});
-if(document.getElementById('endless-btn'))
-  document.getElementById('endless-btn').addEventListener('click',()=>{startGame(true)});
-}
+            onDeath() {
+                playSound('enemyDeath');
+                game.addGold(this.gold);
+                game.addKill();
+                
+                for (let i = 0; i < 8 + Math.floor(Math.random() * 5); i++) {
+                    game.particles.push(new Particle(this.x, this.y, this.getDisplayColor()));
+                }
+                game.floatingTexts.push(new FloatingText(this.x, this.y, '+' + this.gold + 'g', '#ffd700'));
 
-function startGame(endless){
-G.state='playing';G.wave=0;G.gold=100;G.score=0;G.castleHP=100;
-G.towers=[];G.enemies=[];G.projectiles=[];G.particles=[];G.floatTexts=[];G.coffeePickups=[];
-G.selectedType=null;G.selectedTower=null;G.castleSlopWords=[];
-G.waveActive=false;G.betweenWaves=true;G.countdown=3;G.spawnQueue=[];
-G.endless=!!endless;G.endlessWave=0;G.hotTakeFlash=0;
-G.stats={killed:0,goodSaved:0,goodLost:0,goldEarned:0,towerKills:{}};
-document.getElementById('overlay').classList.add('hidden');
-hideUpgradeMenu();
-}
+                if (this.explodes) {
+                    game.towers.forEach(tower => {
+                        const dist = Math.hypot(tower.x - this.x, tower.y - this.y);
+                        if (dist < 80) {
+                            tower.disabledUntil = Date.now() + 3000;
+                        }
+                    });
+                    game.screenShake = 5;
+                }
 
-// ==================== INPUT ====================
-canvas.addEventListener('mousemove',e=>{
-const rect=canvas.getBoundingClientRect();
-const scaleX=CW/rect.width,scaleY=CH/rect.height;
-G.mouseX=(e.clientX-rect.left)*scaleX;
-G.mouseY=(e.clientY-rect.top)*scaleY;
-G.mouseGX=Math.floor(G.mouseX/CS);
-G.mouseGY=Math.floor(G.mouseY/CS);
-});
+                if (this.boss && !this.spawnedMinions && this.hp > -this.maxHp * 0.5) {
+                    for (let i = 0; i < 3; i++) {
+                        const minion = new Enemy('BUZZWORD', game.wave);
+                        minion.pathIndex = Math.max(0, this.pathIndex - 5);
+                        const pos = PATH[minion.pathIndex];
+                        minion.x = pos.x * CELL_SIZE + CELL_SIZE / 2;
+                        minion.y = pos.y * CELL_SIZE + CELL_SIZE / 2;
+                        game.enemies.push(minion);
+                    }
+                    this.spawnedMinions = true;
+                }
+            }
 
-canvas.addEventListener('click',e=>{
-if(G.state!=='playing')return;
-initAudio();
-const rect=canvas.getBoundingClientRect();
-const scaleX=CW/rect.width,scaleY=CH/rect.height;
-const mx=(e.clientX-rect.left)*scaleX,my=(e.clientY-rect.top)*scaleY;
-const gx=Math.floor(mx/CS),gy=Math.floor(my/CS);
+            update(delta) {
+                if (this.dead) return;
 
-if(G.selectedType){
-  const def=TOWER_DEFS[G.selectedType];
-  if(G.gold>=def.cost&&isValidPlacement(gx,gy)&&!G.towers.some(t=>t.gx===gx&&t.gy===gy)){
-    G.gold-=def.cost;
-    G.towers.push(placeTower(G.selectedType,gx,gy));
-    playSound('place');
-  }
-  return;
-}
-// Check if clicking a tower
-hideUpgradeMenu();
-for(const t of G.towers){
-  if(t.gx===gx&&t.gy===gy){
-    showUpgradeMenu(t,e.clientX,e.clientY);return;
-  }
-}
-});
+                if (Date.now() < this.slowedUntil) {
+                    const actualSpeed = this.speed * this.slowFactor;
+                    this.pathIndex += actualSpeed * delta;
+                } else {
+                    this.slowFactor = 1;
+                    this.pathIndex += this.speed * delta;
+                }
 
-canvas.addEventListener('contextmenu',e=>{
-e.preventDefault();
-if(G.state!=='playing')return;
-const rect=canvas.getBoundingClientRect();
-const scaleX=CW/rect.width,scaleY=CH/rect.height;
-const mx=(e.clientX-rect.left)*scaleX,my=(e.clientY-rect.top)*scaleY;
-const gx=Math.floor(mx/CS),gy=Math.floor(my/CS);
-for(const t of G.towers){
-  if(t.gx===gx&&t.gy===gy){showUpgradeMenu(t,e.clientX,e.clientY);return}
-}
-hideUpgradeMenu();
-});
+                if (this.pushback > 0) {
+                    this.pathIndex -= this.pushback;
+                    this.pushback = 0;
+                }
 
-document.addEventListener('keydown',e=>{
-if(e.key==='Escape'){G.selectedType=null;hideUpgradeMenu();
-  document.querySelectorAll('.tower-btn').forEach(b=>b.classList.remove('selected'));
-}
-});
+                if (this.pathIndex >= PATH.length - 1) {
+                    this.reachEnd();
+                    return;
+                }
 
-document.getElementById('wave-btn').addEventListener('click',()=>{
-if(G.state!=='playing')return;
-initAudio();
-if(!G.waveActive&&G.wave===0){G.betweenWaves=false;startWave();return}
-if(G.betweenWaves)skipToNextWave();
-});
+                const currentIndex = Math.floor(this.pathIndex);
+                const nextIndex = Math.min(currentIndex + 1, PATH.length - 1);
+                const current = PATH[currentIndex];
+                const next = PATH[nextIndex];
+                const t = this.pathIndex - currentIndex;
 
-document.getElementById('mute-btn').addEventListener('click',()=>{
-soundOn=!soundOn;
-document.getElementById('mute-btn').textContent='Sound: '+(soundOn?'ON':'OFF');
-});
+                this.x = (current.x + (next.x - current.x) * t) * CELL_SIZE + CELL_SIZE / 2;
+                this.y = (current.y + (next.y - current.y) * t) * CELL_SIZE + CELL_SIZE / 2;
+            }
 
-// Click outside canvas to deselect
-document.addEventListener('click',e=>{
-if(!canvas.contains(e.target)&&!document.getElementById('upgrade-menu').contains(e.target)&&
-   !document.getElementById('sidebar').contains(e.target)){
-  hideUpgradeMenu();
-}
-});
+            reachEnd() {
+                if (this.isGoodWord) {
+                    game.addGold(8);
+                    game.castleHealth = Math.min(100, game.castleHealth + 2);
+                    game.floatingTexts.push(new FloatingText(this.x, this.y, '+8g +2% HP', '#00e5ff'));
+                    game.goodWordsPassedThrough++;
+                } else {
+                    const damage = Math.max(5, (this.hp / this.maxHp) * 20);
+                    game.castleHealth -= damage;
+                    game.screenFlash = {color: '#ff0000', alpha: 0.3, decay: 0.02};
+                }
+                this.dead = true;
+            }
 
-// ==================== GAME LOOP ====================
-function gameLoop(timestamp){
-if(!G.lastTime)G.lastTime=timestamp;
-const dt=Math.min(timestamp-G.lastTime,50);
-G.lastTime=timestamp;
+            draw(ctx) {
+                if (this.dead) return;
 
-if(G.state==='playing'){
-  updateWave(dt);
-  updateTowers(dt);
-  updateEnemies(dt);
-  updateProjectiles(dt);
-  updateParticles(dt);
-  updateCoffeePickups(dt);
-  // Clean up dead enemies (but only outside active spawning)
-  G.enemies=G.enemies.filter(e=>e.alive);
-  G.projectiles=G.projectiles.filter(p=>p.alive);
-  // Check game over
-  if(G.castleHP<=0){G.castleHP=0;G.state='gameover';showEndScreen(false)}
-  render();
-  updateUI();
-}else if(G.state==='menu'){
-  render();
-}
-requestAnimationFrame(gameLoop);
-}
+                ctx.fillStyle = this.getDisplayColor();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
 
-// ==================== INIT ====================
-buildSidebar();
-showStartScreen();
-requestAnimationFrame(gameLoop);
-</script>
+                ctx.fillStyle = '#000';
+                ctx.font = (this.fusionCount > 0 ? '10px' : '12px') + ' Courier New';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.word, this.x, this.y);
+
+                const barWidth = this.radius * 2;
+                const barHeight = 4;
+                const barX = this.x - barWidth / 2;
+                const barY = this.y - this.radius - 8;
+                ctx.fillStyle = '#000';
+                ctx.fillRect(barX, barY, barWidth, barHeight);
+                ctx.fillStyle = '#0f0';
+                ctx.fillRect(barX, barY, barWidth * (this.hp / this.maxHp), barHeight);
+            }
+        }
+
+        // GOOD WORD CLASS
+        class GoodWord extends Enemy {
+            constructor(wave) {
+                super('BUZZWORD', wave);
+                this.isGoodWord = true;
+                this.color = '#00e5ff';
+                this.word = GOOD_WORDS[Math.floor(Math.random() * GOOD_WORDS.length)];
+                this.hp = 999;
+                this.maxHp = 999;
+                this.gold = 0;
+                this.pulsePhase = Math.random() * Math.PI * 2;
+            }
+
+            draw(ctx) {
+                if (this.dead) return;
+
+                this.pulsePhase += 0.05;
+                const pulse = Math.sin(this.pulsePhase) * 0.2 + 1;
+
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius * pulse, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 12px Courier New';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.word, this.x, this.y);
+            }
+
+            onClick() {
+                playSound('goodWordActivate');
+                game.goodWordsActivated++;
+                for (let i = 0; i < 12; i++) {
+                    game.particles.push(new Particle(this.x, this.y, '#00e5ff'));
+                }
+                
+                const powerName = this.word.toUpperCase();
+                game.floatingTexts.push(new FloatingText(this.x, this.y, powerName, '#00e5ff'));
+
+                switch(this.word) {
+                    case 'bug':
+                        game.enemies.forEach(e => {
+                            if (!e.isGoodWord && Math.hypot(e.x - this.x, e.y - this.y) < 100) {
+                                e.slowedUntil = Date.now() + 3000;
+                                e.slowFactor = 0.5;
+                            }
+                        });
+                        break;
+                    case 'fix':
+                        game.castleHealth = Math.min(100, game.castleHealth + 5);
+                        break;
+                    case 'deploy':
+                        game.addGold(25);
+                        break;
+                    case 'test':
+                        game.enemies.forEach(e => {
+                            if (e.stealth) e.revealed = true;
+                        });
+                        setTimeout(() => {
+                            game.enemies.forEach(e => {
+                                if (e.stealth) e.revealed = false;
+                            });
+                        }, 5000);
+                        break;
+                    case 'merge':
+                        game.nextTowerDiscount = 0.5;
+                        game.discountExpires = Date.now() + 30000;
+                        break;
+                    case 'ship':
+                        game.allTowersSpeedBoost = Date.now() + 5000;
+                        break;
+                    case 'build':
+                        let nearestTower = null;
+                        let minDist = Infinity;
+                        game.towers.forEach(t => {
+                            const dist = Math.hypot(t.x - this.x, t.y - this.y);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                nearestTower = t;
+                            }
+                        });
+                        if (nearestTower) {
+                            nearestTower.rangeBoostUntil = Date.now() + 10000;
+                        }
+                        break;
+                    case 'debug':
+                        game.enemies.forEach(e => {
+                            if (e.stealth) {
+                                e.revealed = true;
+                                e.slowedUntil = Date.now() + 4000;
+                                e.slowFactor = 0.7;
+                            }
+                        });
+                        break;
+                    case 'patch':
+                        let nearestCorruptedTower = null;
+                        let minDistCorrupt = Infinity;
+                        game.towers.forEach(t => {
+                            if (t.corrupted > 0) {
+                                const dist = Math.hypot(t.x - this.x, t.y - this.y);
+                                if (dist < minDistCorrupt) {
+                                    minDistCorrupt = dist;
+                                    nearestCorruptedTower = t;
+                                }
+                            }
+                        });
+                        if (nearestCorruptedTower) {
+                            nearestCorruptedTower.corrupted *= 0.7;
+                        }
+                        break;
+                    case 'commit':
+                        game.lastKillTime = Date.now();
+                        break;
+                    case 'refactor':
+                        let nearestFused = null;
+                        let minDistFused = Infinity;
+                        game.enemies.forEach(e => {
+                            if (e.fusionCount > 0 && !e.dead) {
+                                const dist = Math.hypot(e.x - this.x, e.y - this.y);
+                                if (dist < minDistFused) {
+                                    minDistFused = dist;
+                                    nearestFused = e;
+                                }
+                            }
+                        });
+                        if (nearestFused) {
+                            nearestFused.hp = nearestFused.hp / 2;
+                            nearestFused.fusionCount = 0;
+                            nearestFused.radius = 15;
+                            nearestFused.speed /= 1.2;
+                        }
+                        break;
+                    case 'lint':
+                        game.enemies.forEach(e => {
+                            if (!e.isGoodWord) e.takeDamage(5);
+                        });
+                        break;
+                    case 'push':
+                        let nearestEnemy = null;
+                        let minDistEnemy = Infinity;
+                        game.enemies.forEach(e => {
+                            if (!e.isGoodWord && !e.dead) {
+                                const dist = Math.hypot(e.x - this.x, e.y - this.y);
+                                if (dist < minDistEnemy) {
+                                    minDistEnemy = dist;
+                                    nearestEnemy = e;
+                                }
+                            }
+                        });
+                        if (nearestEnemy) {
+                            nearestEnemy.pushback = 2;
+                        }
+                        break;
+                    case 'pull':
+                        let nearestEnemyPull = null;
+                        let minDistEnemyPull = Infinity;
+                        game.enemies.forEach(e => {
+                            if (!e.isGoodWord && !e.dead) {
+                                const dist = Math.hypot(e.x - this.x, e.y - this.y);
+                                if (dist < minDistEnemyPull) {
+                                    minDistEnemyPull = dist;
+                                    nearestEnemyPull = e;
+                                }
+                            }
+                        });
+                        let pullTargetTower = null;
+                        let minDistTowerPull = Infinity;
+                        game.towers.forEach(t => {
+                            if (nearestEnemyPull) {
+                                const dist = Math.hypot(t.x - nearestEnemyPull.x, t.y - nearestEnemyPull.y);
+                                if (dist < minDistTowerPull) {
+                                    minDistTowerPull = dist;
+                                    pullTargetTower = t;
+                                }
+                            }
+                        });
+                        if (nearestEnemyPull && pullTargetTower) {
+                            const dx = pullTargetTower.x - nearestEnemyPull.x;
+                            const dy = pullTargetTower.y - nearestEnemyPull.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist > 0) {
+                                nearestEnemyPull.x += (dx / dist) * 40;
+                                nearestEnemyPull.y += (dy / dist) * 40;
+                            }
+                        }
+                        break;
+                    case 'rebase':
+                        game.penCooldown = 0;
+                        break;
+                    case 'grep':
+                        let highestHpEnemy = null;
+                        let maxHp = 0;
+                        game.enemies.forEach(e => {
+                            if (!e.isGoodWord && !e.dead && e.hp > maxHp) {
+                                maxHp = e.hp;
+                                highestHpEnemy = e;
+                            }
+                        });
+                        if (highestHpEnemy) {
+                            game.priorityTarget = highestHpEnemy;
+                            game.priorityTargetUntil = Date.now() + 5000;
+                        }
+                        break;
+                }
+                
+                this.dead = true;
+            }
+        }
+
+        // TOWER CLASS
+        class Tower {
+            constructor(type, gridX, gridY) {
+                this.type = type;
+                this.gridX = gridX;
+                this.gridY = gridY;
+                this.x = gridX * CELL_SIZE + CELL_SIZE / 2;
+                this.y = gridY * CELL_SIZE + CELL_SIZE / 2;
+                this.typeData = TOWER_TYPES[type];
+                this.range = this.typeData.range;
+                this.damage = this.typeData.damage;
+                this.fireRate = this.typeData.fireRate;
+                this.friendlyFire = this.typeData.friendlyFire || 0;
+                this.upgraded = false;
+                this.lastFire = 0;
+                this.totalCost = this.typeData.cost;
+                this.corrupted = 0;
+                this.disabledUntil = 0;
+                this.spawnCooldown = 0;
+                this.rangeBoostUntil = 0;
+                this.scale = 0;
+            }
+
+            canFire() {
+                if (Date.now() < this.disabledUntil) return false;
+                if (this.corrupted >= 100) return false;
+                if (this.type === 'Coffee Machine') return false;
+                
+                let fireRate = this.fireRate;
+                if (this.corrupted >= 50 && this.corrupted < 80) {
+                    fireRate *= 1.25;
+                } else if (this.corrupted >= 80) {
+                    fireRate *= 1.5;
+                }
+
+                if (Date.now() < game.allTowersSpeedBoost) {
+                    fireRate *= 0.7;
+                }
+
+                const coffeeBoost = this.getCoffeeBoost();
+                if (coffeeBoost > 0) {
+                    fireRate *= (1 - coffeeBoost);
+                }
+
+                return Date.now() - this.lastFire > fireRate;
+            }
+
+            getCoffeeBoost() {
+                let boost = 0;
+                game.towers.forEach(t => {
+                    if (t.type === 'Coffee Machine') {
+                        const dist = Math.hypot(t.x - this.x, t.y - this.y);
+                        const buffRange = t.upgraded ? 120 : 100;
+                        if (dist < buffRange) {
+                            boost = Math.max(boost, t.upgraded ? 0.35 : 0.25);
+                        }
+                    }
+                });
+                return boost;
+            }
+
+            findTarget(enemies) {
+                if (this.type === 'Coffee Machine') return null;
+
+                let candidates = enemies.filter(e => {
+                    if (e.dead) return false;
+                    if (e.stealth && !e.revealed && this.type !== 'Rubber Duck') return false;
+                    if (e.isGoodWord) return false;
+                    
+                    let effectiveRange = this.range;
+                    if (Date.now() < this.rangeBoostUntil) {
+                        effectiveRange *= 1.5;
+                    }
+                    
+                    const dist = Math.hypot(e.x - this.x, e.y - this.y);
+                    return dist < effectiveRange;
+                });
+
+                if (game.priorityTarget && Date.now() < game.priorityTargetUntil) {
+                    if (candidates.includes(game.priorityTarget)) {
+                        return game.priorityTarget;
+                    }
+                }
+
+                if (candidates.length === 0) return null;
+
+                candidates.sort((a, b) => b.pathIndex - a.pathIndex);
+                return candidates[0];
+            }
+
+            fire(target) {
+                this.lastFire = Date.now();
+                playSound('towerShoot');
+
+                let damage = this.damage;
+                if (this.corrupted >= 80) {
+                    damage *= 0.75;
+                }
+
+                if (this.type === 'Rubber Duck') {
+                    const bounces = this.upgraded ? 3 : 2;
+                    game.projectiles.push(new Projectile(this.x, this.y, target, damage, this, bounces, target));
+                } else if (this.type === 'Troll' && this.upgraded && Math.random() < 0.1) {
+                    game.projectiles.push(new Projectile(this.x, this.y, target, damage, this));
+                    game.projectiles.push(new Projectile(this.x, this.y, target, damage, this));
+                } else {
+                    game.projectiles.push(new Projectile(this.x, this.y, target, damage, this));
+                }
+            }
+
+            update(enemies) {
+                if (this.scale < 1) {
+                    this.scale = Math.min(1, this.scale + 0.1);
+                }
+
+                if (this.type === 'Rubber Duck') {
+                    game.towers.forEach(t => {
+                        if (t !== this) {
+                            const dist = Math.hypot(t.x - this.x, t.y - this.y);
+                            if (dist < this.range) {
+                                t.corrupted = Math.max(0, t.corrupted - 0.15);
+                            }
+                        }
+                    });
+                    enemies.forEach(e => {
+                        if (e.stealth && !e.revealed) {
+                            const dist = Math.hypot(e.x - this.x, e.y - this.y);
+                            if (dist < this.range) {
+                                e.revealed = true;
+                            }
+                        }
+                    });
+                }
+
+                if (this.type === 'Coffee Machine') {
+                    this.corrupted = Math.max(0, this.corrupted - 0.05);
+                }
+
+                enemies.forEach(e => {
+                    if (e.isGoodWord) {
+                        const dist = Math.hypot(e.x - this.x, e.y - this.y);
+                        if (dist < 50) {
+                            this.corrupted = Math.max(0, this.corrupted - 0.02);
+                        }
+                        return;
+                    }
+
+                    const dist = Math.hypot(e.x - this.x, e.y - this.y);
+                    let exposureRange = 60;
+                    if (dist < exposureRange) {
+                        let exposureRate = 0;
+                        if (e.type === 'BUZZWORD') exposureRate = 0.05;
+                        else if (e.type === 'CORPORATE') exposureRate = 0.1;
+                        else if (e.type === 'THOUGHT_LEADER') exposureRate = 0.03;
+                        else if (e.type === 'BOSS') exposureRate = 0.2;
+                        
+                        if (e.fusionCount > 0) exposureRate = 0.15;
+                        
+                        this.corrupted = Math.min(100, this.corrupted + exposureRate);
+                    }
+                });
+
+                if (this.corrupted >= 100) {
+                    this.spawnCooldown -= 1/60;
+                    if (this.spawnCooldown <= 0) {
+                        this.spawnCooldown = 4;
+                        const spawn = new Enemy('BUZZWORD', 1);
+                        spawn.hp = 15;
+                        spawn.maxHp = 15;
+                        let closestPathPoint = 0;
+                        let minDist = Infinity;
+                        PATH.forEach((p, i) => {
+                            const dist = Math.hypot(p.x * CELL_SIZE + CELL_SIZE/2 - this.x, p.y * CELL_SIZE + CELL_SIZE/2 - this.y);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                closestPathPoint = i;
+                            }
+                        });
+                        spawn.pathIndex = closestPathPoint;
+                        spawn.x = PATH[closestPathPoint].x * CELL_SIZE + CELL_SIZE/2;
+                        spawn.y = PATH[closestPathPoint].y * CELL_SIZE + CELL_SIZE/2;
+                        game.enemies.push(spawn);
+                    }
+                }
+
+                if (this.canFire()) {
+                    const target = this.findTarget(enemies);
+                    if (target) {
+                        this.fire(target);
+                    }
+                }
+            }
+
+            upgrade() {
+                if (this.upgraded) return false;
+                if (game.gold < this.typeData.upgradeCost) return false;
+
+                game.gold -= this.typeData.upgradeCost;
+                this.totalCost += this.typeData.upgradeCost;
+                this.upgraded = true;
+
+                const up = this.typeData.upgrade;
+                if (up.range) this.range = up.range;
+                if (up.damage) this.damage = up.damage;
+                if (up.bounces) this.bounces = up.bounces;
+                if (up.splash) this.splash = up.splash;
+                if (up.buffRange) this.buffRange = up.buffRange;
+                if (up.speedBoost) this.speedBoost = up.speedBoost;
+                if (up.doubleShot) this.doubleShot = up.doubleShot;
+
+                playSound('towerPlace');
+                return true;
+            }
+
+            sell() {
+                const sellValue = Math.floor(this.totalCost * 0.6);
+                game.addGold(sellValue);
+                game.floatingTexts.push(new FloatingText(this.x, this.y, '+' + sellValue + 'g', '#ffd700'));
+                const index = game.towers.indexOf(this);
+                if (index > -1) {
+                    game.towers.splice(index, 1);
+                }
+            }
+
+            deslop() {
+                let cost = 15;
+                if (this.corrupted >= 50 && this.corrupted < 80) cost = 25;
+                else if (this.corrupted >= 80) cost = 40;
+
+                if (game.gold < cost) return false;
+
+                game.gold -= cost;
+                this.corrupted = 0;
+                playSound('goodWordActivate');
+                return true;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.scale(this.scale, this.scale);
+
+                if (Date.now() < this.rangeBoostUntil) {
+                    ctx.strokeStyle = 'rgba(88, 166, 255, 0.2)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.range * 1.5, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                if (this.corrupted >= 100) {
+                    ctx.fillStyle = '#333';
+                } else {
+                    ctx.fillStyle = '#21262d';
+                }
+                ctx.fillRect(-18, -18, 36, 36);
+
+                if (this.corrupted >= 100) {
+                    ctx.strokeStyle = '#ff0000';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(-18, -18, 36, 36);
+                }
+
+                ctx.font = '24px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (this.corrupted >= 80 && this.corrupted < 100) {
+                    const jitter = 2;
+                    ctx.translate(
+                        (Math.random() - 0.5) * jitter,
+                        (Math.random() - 0.5) * jitter
+                    );
+                }
+
+                ctx.fillText(this.typeData.emoji, 0, 0);
+
+                if (this.upgraded) {
+                    ctx.fillStyle = '#ffd700';
+                    ctx.font = '12px Arial';
+                    ctx.fillText('★', 12, -12);
+                }
+
+                const barWidth = 36;
+                const barHeight = 4;
+                let barColor = '#0f0';
+                if (this.corrupted >= 50 && this.corrupted < 80) barColor = '#ff0';
+                else if (this.corrupted >= 80) barColor = '#f00';
+
+                ctx.fillStyle = '#000';
+                ctx.fillRect(-18, 20, barWidth, barHeight);
+                ctx.fillStyle = barColor;
+                ctx.fillRect(-18, 20, barWidth * (this.corrupted / 100), barHeight);
+
+                ctx.restore();
+
+                if (this.corrupted >= 50 && Math.random() < 0.02) {
+                    const buzzwords = ['synergy', 'leverage', 'disruptive'];
+                    const word = buzzwords[Math.floor(Math.random() * buzzwords.length)];
+                    game.floatingTexts.push(new FloatingText(
+                        this.x + (Math.random() - 0.5) * 20,
+                        this.y - 30,
+                        word,
+                        '#ff6b35'
+                    ));
+                }
+            }
+        }
+
+        // WAVE SPAWNING
+        function generateWave(waveNum) {
+            const spawns = [];
+            
+            if (waveNum === 1) {
+                for (let i = 0; i < 8; i++) {
+                    spawns.push({type: 'BUZZWORD', delay: i * 1.5});
+                }
+            } else if (waveNum === 2) {
+                for (let i = 0; i < 10; i++) {
+                    spawns.push({type: 'BUZZWORD', delay: i * 1.2});
+                }
+                spawns.push({type: 'GOOD', delay: 6});
+                spawns.push({type: 'GOOD', delay: 12});
+            } else if (waveNum === 3) {
+                for (let i = 0; i < 12; i++) {
+                    spawns.push({type: 'BUZZWORD', delay: i * 1});
+                }
+                for (let i = 0; i < 3; i++) {
+                    spawns.push({type: 'CORPORATE', delay: 8 + i * 2});
+                }
+                spawns.push({type: 'GOOD', delay: 4});
+                spawns.push({type: 'GOOD', delay: 10});
+            } else if (waveNum === 4) {
+                for (let i = 0; i < 10; i++) {
+                    spawns.push({type: 'BUZZWORD', delay: i * 0.8});
+                }
+                for (let i = 0; i < 4; i++) {
+                    spawns.push({type: 'THOUGHT_LEADER', delay: 12 + i * 0.3});
+                    spawns.push({type: 'THOUGHT_LEADER', delay: 12 + i * 0.3 + 0.1});
+                    spawns.push({type: 'THOUGHT_LEADER', delay: 12 + i * 0.3 + 0.2});
+                    spawns.push({type: 'THOUGHT_LEADER', delay: 12 + i * 0.3 + 0.3});
+                }
+                for (let i = 0; i < 3; i++) {
+                    spawns.push({type: 'GOOD', delay: 5 + i * 4});
+                }
+            } else if (waveNum === 5) {
+                for (let i = 0; i < 15; i++) {
+                    spawns.push({type: 'BUZZWORD', delay: i * 0.8});
+                }
+                for (let i = 0; i < 3; i++) {
+                    spawns.push({type: 'STEALTH', delay: 10 + i * 3});
+                }
+                for (let i = 0; i < 3; i++) {
+                    spawns.push({type: 'GOOD', delay: 4 + i * 5});
+                }
+            } else if (waveNum === 6) {
+                for (let i = 0; i < 12; i++) {
+                    spawns.push({type: 'BUZZWORD', delay: i * 0.7});
+                }
+                for (let i = 0; i < 4; i++) {
+                    spawns.push({type: 'CORPORATE', delay: 8 + i * 2});
+                }
+                for (let i = 0; i < 2; i++) {
+                    spawns.push({type: 'SLOP_BOMB', delay: 14 + i * 4});
+                }
+                for (let i = 0; i < 3; i++) {
+                    spawns.push({type: 'GOOD', delay: 3 + i * 6});
+                }
+            } else if (waveNum === 7) {
+                for (let i = 0; i < 15; i++) {
+                    spawns.push({type: 'BUZZWORD', delay: i * 0.6});
+                }
+                for (let i = 0; i < 3; i++) {
+                    spawns.push({type: 'STEALTH', delay: 8 + i * 3});
+                }
+                for (let i = 0; i < 3; i++) {
+                    spawns.push({type: 'SLOP_BOMB', delay: 12 + i * 3});
+                }
+                for (let i = 0; i < 4; i++) {
+                    spawns.push({type: 'GOOD', delay: 2 + i * 5});
+                }
+            } else if (waveNum === 8) {
+                for (let i = 0; i < 20; i++) {
+                    spawns.push({type: 'BUZZWORD', delay: i * 0.5});
+                }
+                for (let i = 0; i < 5; i++) {
+                    spawns.push({type: 'CORPORATE', delay: 10 + i * 2});
+                }
+                spawns.push({type: 'BOSS', delay: 22});
+                for (let i = 0; i < 4; i++) {
+                    spawns.push({type: 'GOOD', delay: 5 + i * 5});
+                }
+            } else if (waveNum >= 9 && waveNum <= 14) {
+                const count = 15 + waveNum * 3;
+                for (let i = 0; i < count; i++) {
+                    const roll = Math.random();
+                    if (roll < 0.4) spawns.push({type: 'BUZZWORD', delay: i * 0.4});
+                    else if (roll < 0.6) spawns.push({type: 'CORPORATE', delay: i * 0.4});
+                    else if (roll < 0.75) spawns.push({type: 'THOUGHT_LEADER', delay: i * 0.4});
+                    else if (roll < 0.85) spawns.push({type: 'STEALTH', delay: i * 0.4});
+                    else spawns.push({type: 'SLOP_BOMB', delay: i * 0.4});
+                }
+                const bossCount = Math.floor(waveNum / 4);
+                for (let i = 0; i < bossCount; i++) {
+                    spawns.push({type: 'BOSS', delay: 15 + i * 8});
+                }
+                for (let i = 0; i < 4; i++) {
+                    spawns.push({type: 'GOOD', delay: 3 + i * 6});
+                }
+            } else if (waveNum === 15) {
+                for (let i = 0; i < 30; i++) {
+                    spawns.push({type: 'BUZZWORD', delay: i * 0.3});
+                }
+                for (let i = 0; i < 8; i++) {
+                    spawns.push({type: 'CORPORATE', delay: 10 + i * 1.5});
+                }
+                for (let i = 0; i < 5; i++) {
+                    spawns.push({type: 'SLOP_BOMB', delay: 15 + i * 2});
+                }
+                spawns.push({type: 'BOSS', delay: 25});
+                spawns.push({type: 'BOSS', delay: 30});
+                for (let i = 0; i < 5; i++) {
+                    spawns.push({type: 'GOOD', delay: 2 + i * 6});
+                }
+            } else {
+                const count = 20 + (waveNum - 15) * 5;
+                for (let i = 0; i < count; i++) {
+                    const roll = Math.random();
+                    if (roll < 0.3) spawns.push({type: 'BUZZWORD', delay: i * 0.3});
+                    else if (roll < 0.5) spawns.push({type: 'CORPORATE', delay: i * 0.3});
+                    else if (roll < 0.65) spawns.push({type: 'THOUGHT_LEADER', delay: i * 0.3});
+                    else if (roll < 0.8) spawns.push({type: 'STEALTH', delay: i * 0.3});
+                    else spawns.push({type: 'SLOP_BOMB', delay: i * 0.3});
+                }
+                const bossCount = 2 + Math.floor((waveNum - 15) / 3);
+                for (let i = 0; i < bossCount; i++) {
+                    spawns.push({type: 'BOSS', delay: 12 + i * 6});
+                }
+                for (let i = 0; i < 4; i++) {
+                    spawns.push({type: 'GOOD', delay: 2 + i * 5});
+                }
+            }
+
+            return spawns;
+        }
+
+        // MAIN GAME OBJECT
+        const game = {
+            state: 'start',
+            wave: 1,
+            gold: 100,
+            castleHealth: 100,
+            enemies: [],
+            towers: [],
+            projectiles: [],
+            particles: [],
+            floatingTexts: [],
+            selectedTowerType: null,
+            selectedTower: null,
+            hoveredTower: null,
+            mouseX: 0,
+            mouseY: 0,
+            canvas: null,
+            ctx: null,
+            spawnQueue: [],
+            spawnTimer: 0,
+            betweenWavesTimer: 0,
+            comboCount: 0,
+            lastKillTime: 0,
+            maxCombo: 0,
+            penCooldown: 0,
+            penDrawing: false,
+            penStart: null,
+            penCurrent: null,
+            penLine: null,
+            screenShake: 0,
+            screenFlash: null,
+            allTowersSpeedBoost: 0,
+            nextTowerDiscount: 0,
+            discountExpires: 0,
+            priorityTarget: null,
+            priorityTargetUntil: 0,
+            endless: false,
+            totalKills: 0,
+            goodWordsActivated: 0,
+            goodWordsPassedThrough: 0,
+            fusionsPrevented: 0,
+
+            init() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                this.canvas.addEventListener('click', this.handleClick.bind(this));
+                this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+                this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+                this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+                
+                this.setupTowerShop();
+                this.loop();
+            },
+
+            setupTowerShop() {
+                const shop = document.getElementById('towerShop');
+                Object.keys(TOWER_TYPES).forEach(key => {
+                    const tower = TOWER_TYPES[key];
+                    const item = document.createElement('div');
+                    item.className = 'tower-item';
+                    item.innerHTML = `
+                        <div class="emoji">${tower.emoji}</div>
+                        <div class="name">${tower.name}</div>
+                        <div class="cost">Cost: ${tower.cost}g</div>
+                        <div class="desc">${tower.description}</div>
+                    `;
+                    item.onclick = () => this.selectTowerType(key, item);
+                    shop.appendChild(item);
+                });
+            },
+
+            selectTowerType(type, element) {
+                document.querySelectorAll('.tower-item').forEach(el => el.classList.remove('selected'));
+                element.classList.add('selected');
+                this.selectedTowerType = type;
+                this.selectedTower = null;
+            },
+
+            startGame() {
+                document.getElementById('startScreen').classList.add('hidden');
+                this.state = 'playing';
+                this.wave = 1;
+                this.gold = 100;
+                this.castleHealth = 100;
+                this.enemies = [];
+                this.towers = [];
+                this.projectiles = [];
+                this.particles = [];
+                this.floatingTexts = [];
+                this.comboCount = 0;
+                this.maxCombo = 0;
+                this.penCooldown = 0;
+                this.endless = false;
+                this.totalKills = 0;
+                this.goodWordsActivated = 0;
+                this.goodWordsPassedThrough = 0;
+                this.startWave();
+            },
+
+            startEndless() {
+                document.getElementById('gameOverScreen').classList.add('hidden');
+                this.endless = true;
+                this.state = 'between-waves';
+                this.betweenWavesTimer = 10;
+            },
+
+            startWave() {
+                this.spawnQueue = generateWave(this.wave);
+                this.spawnTimer = 0;
+                playSound('waveStart');
+                this.updateUI();
+            },
+
+            startNextWave() {
+                if (this.state !== 'between-waves') return;
+                this.addGold(10);
+                this.wave++;
+                this.state = 'playing';
+                this.startWave();
+            },
+
+            addGold(amount) {
+                this.gold += amount;
+                this.updateUI();
+            },
+
+            addKill() {
+                const now = Date.now();
+                this.totalKills++;
+                if (now - this.lastKillTime < 1500) {
+                    this.comboCount++;
+                    playSound('comboBlip');
+                } else {
+                    this.comboCount = 1;
+                }
+                this.lastKillTime = now;
+                this.maxCombo = Math.max(this.maxCombo, this.comboCount);
+                this.updateComboDisplay();
+            },
+
+            updateComboDisplay() {
+                const display = document.getElementById('comboDisplay');
+                const count = document.getElementById('comboCount');
+                const text = document.getElementById('comboText');
+                const barDisplay = document.getElementById('comboBarDisplay');
+
+                if (this.comboCount >= 3) {
+                    display.classList.remove('hidden');
+                    count.textContent = 'x' + this.comboCount;
+                    
+                    let message = '';
+                    if (this.comboCount >= 20) message = 'PULITZER MATERIAL';
+                    else if (this.comboCount >= 15) message = 'ABSOLUTE SLOP DESTROYER';
+                    else if (this.comboCount >= 12) message = 'PEER REVIEWED';
+                    else if (this.comboCount >= 8) message = 'Did a human write this?';
+                    else if (this.comboCount >= 5) message = 'Almost coherent.';
+                    else if (this.comboCount >= 3) message = 'Warming up...';
+                    
+                    text.textContent = message;
+                } else {
+                    display.classList.add('hidden');
+                }
+
+                barDisplay.textContent = 'x' + this.comboCount;
+            },
+
+            updateUI() {
+                document.getElementById('waveDisplay').textContent = this.wave + '/15';
+                document.getElementById('goldDisplay').textContent = this.gold;
+                
+                const healthPercent = Math.max(0, this.castleHealth);
+                let healthColor = '#0f0';
+                if (healthPercent < 30) healthColor = '#f00';
+                else if (healthPercent < 60) healthColor = '#ff0';
+                document.getElementById('castleDisplay').style.color = healthColor;
+                document.getElementById('castleDisplay').textContent = Math.floor(healthPercent) + '%';
+
+                const cooldownPercent = Math.max(0, Math.min(1, 1 - (this.penCooldown / 12)));
+                document.getElementById('penCooldownFill').style.width = (cooldownPercent * 100) + '%';
+                document.getElementById('penLabel').textContent = cooldownPercent >= 1 ? 'PEN READY' : 'PEN';
+
+                const nextWaveBtn = document.getElementById('nextWaveBtn');
+                if (this.state === 'between-waves') {
+                    nextWaveBtn.disabled = false;
+                    const timeLeft = Math.ceil(this.betweenWavesTimer);
+                    nextWaveBtn.textContent = 'NEXT WAVE (+10g) (' + timeLeft + 's)';
+                } else {
+                    nextWaveBtn.disabled = true;
+                    nextWaveBtn.textContent = 'NEXT WAVE';
+                }
+            },
+
+            handleClick(e) {
+                if (this.state === 'gameover') return;
+
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                this.enemies.forEach(enemy => {
+                    if (enemy.isGoodWord && !enemy.dead) {
+                        const dist = Math.hypot(enemy.x - x, enemy.y - y);
+                        if (dist < enemy.radius) {
+                            enemy.onClick();
+                            return;
+                        }
+                    }
+                });
+
+                let clickedTower = null;
+                this.towers.forEach(tower => {
+                    const dist = Math.hypot(tower.x - x, tower.y - y);
+                    if (dist < 20) {
+                        clickedTower = tower;
+                    }
+                });
+
+                if (clickedTower) {
+                    this.showTowerMenu(clickedTower);
+                    return;
+                }
+
+                if (this.selectedTowerType) {
+                    const gridX = Math.floor(x / CELL_SIZE);
+                    const gridY = Math.floor(y / CELL_SIZE);
+                    
+                    if (gridX >= 0 && gridX < GRID_WIDTH && gridY >= 0 && gridY < GRID_HEIGHT) {
+                        const isPath = PATH.some(p => p.x === gridX && p.y === gridY);
+                        const occupied = this.towers.some(t => t.gridX === gridX && t.gridY === gridY);
+                        
+                        if (!isPath && !occupied) {
+                            let cost = TOWER_TYPES[this.selectedTowerType].cost;
+                            
+                            if (Date.now() < this.discountExpires && this.nextTowerDiscount > 0) {
+                                cost = Math.floor(cost * (1 - this.nextTowerDiscount));
+                                this.nextTowerDiscount = 0;
+                            }
+
+                            if (this.gold >= cost) {
+                                this.gold -= cost;
+                                const tower = new Tower(this.selectedTowerType, gridX, gridY);
+                                tower.totalCost = cost;
+                                this.towers.push(tower);
+                                playSound('towerPlace');
+                                this.updateUI();
+                            }
+                        }
+                    }
+                }
+            },
+
+            handleMouseMove(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                this.mouseX = e.clientX - rect.left;
+                this.mouseY = e.clientY - rect.top;
+
+                if (this.penDrawing) {
+                    this.penCurrent = {x: this.mouseX, y: this.mouseY};
+                }
+
+                this.hoveredTower = null;
+                this.towers.forEach(tower => {
+                    const dist = Math.hypot(tower.x - this.mouseX, tower.y - this.mouseY);
+                    if (dist < 20) {
+                        this.hoveredTower = tower;
+                    }
+                });
+            },
+
+            handleMouseDown(e) {
+                if (this.penCooldown <= 0 && this.state === 'playing') {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.penStart = {x: e.clientX - rect.left, y: e.clientY - rect.top};
+                    this.penCurrent = {x: this.penStart.x, y: this.penStart.y};
+                    this.penDrawing = true;
+                }
+            },
+
+            handleMouseUp(e) {
+                if (this.penDrawing && this.penStart && this.penCurrent) {
+                    const dx = this.penCurrent.x - this.penStart.x;
+                    const dy = this.penCurrent.y - this.penStart.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist > 20) {
+                        this.penLine = {
+                            x1: this.penStart.x,
+                            y1: this.penStart.y,
+                            x2: this.penCurrent.x,
+                            y2: this.penCurrent.y,
+                            life: 2,
+                            decay: 0.01
+                        };
+                        
+                        this.penCooldown = 12;
+                        playSound('penSlash');
+                        
+                        this.enemies.forEach(enemy => {
+                            if (!enemy.isGoodWord && !enemy.dead) {
+                                if (this.lineIntersectsCircle(
+                                    this.penStart.x, this.penStart.y,
+                                    this.penCurrent.x, this.penCurrent.y,
+                                    enemy.x, enemy.y, enemy.radius
+                                )) {
+                                    const damage = enemy.maxHp * 0.4;
+                                    enemy.takeDamage(damage);
+                                    enemy.slowedUntil = Date.now() + 2000;
+                                    enemy.slowFactor = 0.7;
+                                    
+                                    this.screenFlash = {color: '#ffffff', alpha: 0.2, decay: 0.05};
+                                }
+                            }
+                        });
+                    }
+                }
+                
+                this.penDrawing = false;
+                this.penStart = null;
+                this.penCurrent = null;
+            },
+
+            lineIntersectsCircle(x1, y1, x2, y2, cx, cy, r) {
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const fx = x1 - cx;
+                const fy = y1 - cy;
+                
+                const a = dx * dx + dy * dy;
+                const b = 2 * (fx * dx + fy * dy);
+                const c = (fx * fx + fy * fy) - r * r;
+                
+                const discriminant = b * b - 4 * a * c;
+                
+                if (discriminant < 0) return false;
+                
+                const t1 = (-b - Math.sqrt(discriminant)) / (2 * a);
+                const t2 = (-b + Math.sqrt(discriminant)) / (2 * a);
+                
+                return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1) || (t1 < 0 && t2 > 1);
+            },
+
+            showTowerMenu(tower) {
+                this.selectedTower = tower;
+                const menuHTML = `
+                    <div style="position:absolute; left:${tower.x + 30}px; top:${tower.y}px; background:#161b22; border:2px solid #30363d; padding:10px; border-radius:8px; z-index:100; min-width:150px;">
+                        <div style="font-weight:bold; margin-bottom:8px; color:#58a6ff;">${tower.typeData.name}</div>
+                        ${!tower.upgraded ? `<button onclick="game.upgradeTower()" style="width:100%; margin-bottom:4px; padding:6px; background:#238636; color:#fff; border:none; border-radius:4px; cursor:pointer; font-family:'Courier New', monospace;">Upgrade (${tower.typeData.upgradeCost}g)</button>` : ''}
+                        <button onclick="game.sellTower()" style="width:100%; margin-bottom:4px; padding:6px; background:#da3633; color:#fff; border:none; border-radius:4px; cursor:pointer; font-family:'Courier New', monospace;">Sell (${Math.floor(tower.totalCost * 0.6)}g)</button>
+                        ${tower.corrupted > 0 ? `<button onclick="game.deslopTower()" style="width:100%; margin-bottom:4px; padding:6px; background:#58a6ff; color:#fff; border:none; border-radius:4px; cursor:pointer; font-family:'Courier New', monospace;">De-slop (${tower.corrupted < 50 ? 15 : tower.corrupted < 80 ? 25 : 40}g)</button>` : ''}
+                        <button onclick="game.closeTowerMenu()" style="width:100%; padding:6px; background:#21262d; color:#c9d1d9; border:none; border-radius:4px; cursor:pointer; font-family:'Courier New', monospace;">Close</button>
+                    </div>
+                `;
+                
+                let existingMenu = document.getElementById('towerMenu');
+                if (existingMenu) existingMenu.remove();
+                
+                const menu = document.createElement('div');
+                menu.id = 'towerMenu';
+                menu.innerHTML = menuHTML;
+                document.getElementById('mainGame').appendChild(menu);
+            },
+
+            upgradeTower() {
+                if (this.selectedTower) {
+                    if (this.selectedTower.upgrade()) {
+                        this.closeTowerMenu();
+                    }
+                }
+            },
+
+            sellTower() {
+                if (this.selectedTower) {
+                    this.selectedTower.sell();
+                    this.closeTowerMenu();
+                }
+            },
+
+            deslopTower() {
+                if (this.selectedTower) {
+                    if (this.selectedTower.deslop()) {
+                        this.closeTowerMenu();
+                    }
+                }
+            },
+
+            closeTowerMenu() {
+                const menu = document.getElementById('towerMenu');
+                if (menu) menu.remove();
+                this.selectedTower = null;
+            },
+
+            checkFusions() {
+                const slopEnemies = this.enemies.filter(e => !e.isGoodWord && !e.dead);
+                
+                for (let i = 0; i < slopEnemies.length; i++) {
+                    for (let j = i + 1; j < slopEnemies.length; j++) {
+                        const e1 = slopEnemies[i];
+                        const e2 = slopEnemies[j];
+                        const dist = Math.hypot(e1.x - e2.x, e1.y - e2.y);
+                        
+                        if (dist < 40) {
+                            const pairId = e1.id + '_' + e2.id;
+                            if (!e1.proximityTimers[pairId]) {
+                                e1.proximityTimers[pairId] = Date.now();
+                            }
+                            
+                            if (Date.now() - e1.proximityTimers[pairId] > 1500) {
+                                this.fuseEnemies(e1, e2);
+                                delete e1.proximityTimers[pairId];
+                                return;
+                            }
+                        } else {
+                            const pairId = e1.id + '_' + e2.id;
+                            delete e1.proximityTimers[pairId];
+                        }
+                    }
+                }
+            },
+
+            fuseEnemies(e1, e2) {
+                playSound('fusion');
+                this.screenShake = 3;
+                this.screenFlash = {color: '#ff6b35', alpha: 0.2, decay: 0.05};
+
+                e2.dead = true;
+
+                e1.hp += e2.hp;
+                e1.maxHp += e2.maxHp;
+                e1.speed *= 1.2;
+                e1.gold *= 3;
+                e1.radius *= 1.4;
+                e1.fusionCount++;
+
+                const adj1 = ADJECTIVES[e1.word.toLowerCase()] || e1.word.toUpperCase();
+                const adj2 = ADJECTIVES[e2.word.toLowerCase()] || e2.word.toUpperCase();
+                e1.word = adj1 + ' ' + adj2;
+
+                for (let i = 0; i < 15; i++) {
+                    this.particles.push(new Particle(e1.x, e1.y, '#ff6b35'));
+                }
+            },
+
+            update(delta) {
+                if (this.state === 'start' || this.state === 'gameover') return;
+
+                if (this.state === 'playing') {
+                    this.spawnTimer += delta;
+                    
+                    while (this.spawnQueue.length > 0 && this.spawnTimer >= this.spawnQueue[0].delay) {
+                        const spawn = this.spawnQueue.shift();
+                        if (spawn.type === 'GOOD') {
+                            this.enemies.push(new GoodWord(this.wave));
+                        } else {
+                            this.enemies.push(new Enemy(spawn.type, this.wave));
+                        }
+                    }
+
+                    if (this.spawnQueue.length === 0 && this.enemies.filter(e => !e.dead).length === 0) {
+                        if (this.wave >= 15 && !this.endless) {
+                            this.state = 'gameover';
+                            this.showGameOver(true);
+                        } else {
+                            this.state = 'between-waves';
+                            this.betweenWavesTimer = 15;
+                            playSound('waveClear');
+                            this.floatingTexts.push(new FloatingText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 'WAVE CLEAR', '#00ff00'));
+                        }
+                    }
+
+                    if (Date.now() - this.lastKillTime > 1500 && this.comboCount > 0) {
+                        this.comboCount = 0;
+                        this.updateComboDisplay();
+                    }
+
+                    this.checkFusions();
+                }
+
+                if (this.state === 'between-waves') {
+                    this.betweenWavesTimer -= delta;
+                    if (this.betweenWavesTimer <= 0) {
+                        this.wave++;
+                        this.state = 'playing';
+                        this.startWave();
+                    }
+                }
+
+                this.penCooldown = Math.max(0, this.penCooldown - delta);
+
+                this.enemies.forEach(e => e.update(delta));
+                this.enemies = this.enemies.filter(e => !e.dead);
+
+                this.towers.forEach(t => t.update(this.enemies));
+
+                this.projectiles.forEach(p => p.update(this.enemies, this.towers));
+                this.projectiles = this.projectiles.filter(p => p.update(this.enemies, this.towers));
+
+                this.particles = this.particles.filter(p => p.update());
+                this.floatingTexts = this.floatingTexts.filter(t => t.update());
+
+                if (this.penLine) {
+                    this.penLine.life -= this.penLine.decay;
+                    if (this.penLine.life <= 0) {
+                        this.penLine = null;
+                    }
+                }
+
+                if (this.screenShake > 0) {
+                    this.screenShake *= 0.9;
+                    if (this.screenShake < 0.1) this.screenShake = 0;
+                }
+
+                if (this.screenFlash) {
+                    this.screenFlash.alpha -= this.screenFlash.decay;
+                    if (this.screenFlash.alpha <= 0) {
+                        this.screenFlash = null;
+                    }
+                }
+
+                if (this.castleHealth <= 0) {
+                    this.state = 'gameover';
+                    this.showGameOver(false);
+                }
+
+                this.updateUI();
+            },
+
+            draw() {
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                ctx.save();
+                if (this.screenShake > 0) {
+                    ctx.translate(
+                        (Math.random() - 0.5) * this.screenShake * 2,
+                        (Math.random() - 0.5) * this.screenShake * 2
+                    );
+                }
+
+                for (let y = 0; y < GRID_HEIGHT; y++) {
+                    for (let x = 0; x < GRID_WIDTH; x++) {
+                        const isPath = PATH.some(p => p.x === x && p.y === y);
+                        ctx.fillStyle = isPath ? '#1a1f26' : '#0d1117';
+                        ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                        
+                        ctx.strokeStyle = '#161b22';
+                        ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    }
+                }
+
+                const castlePos = PATH[PATH.length - 1];
+                ctx.fillStyle = this.castleHealth > 50 ? '#238636' : this.castleHealth > 25 ? '#ffd700' : '#da3633';
+                ctx.font = '32px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🏰', castlePos.x * CELL_SIZE + CELL_SIZE / 2, castlePos.y * CELL_SIZE + CELL_SIZE / 2);
+
+                this.towers.forEach(t => {
+                    if (this.hoveredTower === t) {
+                        ctx.strokeStyle = 'rgba(88, 166, 255, 0.3)';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        let effectiveRange = t.range;
+                        if (Date.now() < t.rangeBoostUntil) {
+                            effectiveRange *= 1.5;
+                        }
+                        ctx.arc(t.x, t.y, effectiveRange, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                });
+
+                this.towers.forEach(t => t.draw(ctx));
+
+                this.enemies.forEach(e => e.draw(ctx));
+
+                this.projectiles.forEach(p => p.draw(ctx));
+
+                this.particles.forEach(p => p.draw(ctx));
+
+                this.floatingTexts.forEach(t => t.draw(ctx));
+
+                if (this.penLine) {
+                    ctx.globalAlpha = this.penLine.life / 2;
+                    ctx.strokeStyle = '#f85149';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(this.penLine.x1, this.penLine.y1);
+                    ctx.lineTo(this.penLine.x2, this.penLine.y2);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+
+                if (this.penDrawing && this.penStart && this.penCurrent) {
+                    ctx.globalAlpha = 0.5;
+                    ctx.strokeStyle = '#f85149';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(this.penStart.x, this.penStart.y);
+                    ctx.lineTo(this.penCurrent.x, this.penCurrent.y);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+
+                if (this.selectedTowerType && this.state === 'playing') {
+                    const gridX = Math.floor(this.mouseX / CELL_SIZE);
+                    const gridY = Math.floor(this.mouseY / CELL_SIZE);
+                    
+                    if (gridX >= 0 && gridX < GRID_WIDTH && gridY >= 0 && gridY < GRID_HEIGHT) {
+                        const isPath = PATH.some(p => p.x === gridX && p.y === gridY);
+                        const occupied = this.towers.some(t => t.gridX === gridX && t.gridY === gridY);
+                        
+                        ctx.fillStyle = (!isPath && !occupied) ? 'rgba(35, 134, 54, 0.3)' : 'rgba(218, 54, 51, 0.3)';
+                        ctx.fillRect(gridX * CELL_SIZE, gridY * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                        
+                        const tower = TOWER_TYPES[this.selectedTowerType];
+                        if (tower.range > 0) {
+                            ctx.strokeStyle = 'rgba(88, 166, 255, 0.3)';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.arc(gridX * CELL_SIZE + CELL_SIZE / 2, gridY * CELL_SIZE + CELL_SIZE / 2, tower.range, 0, Math.PI * 2);
+                            ctx.stroke();
+                        } else if (tower.buffRange) {
+                            ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.arc(gridX * CELL_SIZE + CELL_SIZE / 2, gridY * CELL_SIZE + CELL_SIZE / 2, tower.buffRange, 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                if (this.screenFlash) {
+                    ctx.fillStyle = this.screenFlash.color;
+                    ctx.globalAlpha = this.screenFlash.alpha;
+                    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                    ctx.globalAlpha = 1;
+                }
+
+                if (this.comboCount >= 12) {
+                    ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(2, 2, CANVAS_WIDTH - 4, CANVAS_HEIGHT - 4);
+                }
+
+                ctx.restore();
+            },
+
+            showGameOver(victory) {
+                playSound('gameOver');
+                
+                const screen = document.getElementById('gameOverScreen');
+                screen.classList.remove('hidden');
+
+                // Save high score
+                const score = this.wave + (victory ? 100 : 0) + this.maxCombo * 2;
+                const best = parseInt(localStorage.getItem('slopDefenseHighScore') || '0');
+                if (score > best) localStorage.setItem('slopDefenseHighScore', score.toString());
+                const bestWave = parseInt(localStorage.getItem('slopDefenseBestWave') || '0');
+                if (this.wave > bestWave) localStorage.setItem('slopDefenseBestWave', this.wave.toString());
+
+                let grade = 'F';
+                if (this.castleHealth > 80) grade = 'S';
+                else if (this.castleHealth > 60) grade = 'A';
+                else if (this.castleHealth > 40) grade = 'B';
+                else if (this.castleHealth > 20) grade = 'C';
+                else if (this.castleHealth > 0) grade = 'D';
+
+                let comboComment = '';
+                if (this.maxCombo >= 20) comboComment = 'PULITZER MATERIAL';
+                else if (this.maxCombo >= 15) comboComment = 'ABSOLUTE SLOP DESTROYER';
+                else if (this.maxCombo >= 12) comboComment = 'PEER REVIEWED';
+                else if (this.maxCombo >= 8) comboComment = 'Did a human write this?';
+                else if (this.maxCombo >= 5) comboComment = 'Almost coherent.';
+                else if (this.maxCombo >= 3) comboComment = 'Warming up...';
+                else comboComment = 'No combo streak';
+
+                // Find most corrupted tower
+                let worstTower = 'None';
+                let worstCorruption = 0;
+                this.towers.forEach(t => {
+                    if (t.corrupted > worstCorruption) {
+                        worstCorruption = t.corrupted;
+                        worstTower = TOWER_DEFS[t.type].emoji + ' ' + TOWER_DEFS[t.type].name;
+                    }
+                });
+
+                const highScoreText = score >= best ? '<div style="color:#ffd700;margin:8px 0">NEW HIGH SCORE!</div>' : `<div style="color:#8b949e;margin:4px 0">Best score: ${best}</div>`;
+
+                if (victory) {
+                    screen.innerHTML = `
+                        <div class="title" style="color:#00ff00">YOUR CASTLE STANDS</div>
+                        ${highScoreText}
+                        <div class="stats">
+                            <div class="stat-line"><span>Castle Health:</span><span>${Math.floor(this.castleHealth)}%</span></div>
+                            <div class="stat-line"><span>Slop Destroyed:</span><span>${this.totalKills}</span></div>
+                            <div class="stat-line"><span>Good Words Activated:</span><span>${this.goodWordsActivated}</span></div>
+                            <div class="stat-line"><span>Good Words Passed:</span><span>${this.goodWordsPassedThrough}</span></div>
+                            <div class="stat-line"><span>Highest Combo:</span><span>x${this.maxCombo} - ${comboComment}</span></div>
+                            <div class="stat-line"><span>Most Corrupted:</span><span>${worstTower} (${Math.floor(worstCorruption)}%)</span></div>
+                            <div class="stat-line"><span>Grade:</span><span style="color:#ffd700; font-size:24px">${grade}</span></div>
+                        </div>
+                        <div style="display:flex;gap:12px;justify-content:center;margin-top:16px">
+                            <button class="btn" onclick="game.restart()">PLAY AGAIN</button>
+                            <button class="btn" style="background:#6e40c9" onclick="game.startEndless()">ENDLESS MODE</button>
+                        </div>
+                    `;
+                } else {
+                    screen.innerHTML = `
+                        <div class="title" style="color:#ff0000">YOUR CASTLE HAS FALLEN TO SLOP</div>
+                        <div class="subtitle" style="color:#8b949e;margin:8px 0;font-size:13px">It now exclusively publishes thought leadership about disrupting the synergy paradigm.</div>
+                        ${highScoreText}
+                        <div class="stats">
+                            <div class="stat-line"><span>Survived to Wave:</span><span>${this.wave}${this.endless ? ' (Endless)' : '/15'}</span></div>
+                            <div class="stat-line"><span>Slop Destroyed:</span><span>${this.totalKills}</span></div>
+                            <div class="stat-line"><span>Highest Combo:</span><span>x${this.maxCombo} - ${comboComment}</span></div>
+                        </div>
+                        <button class="btn" onclick="game.restart()">TRY AGAIN</button>
+                    `;
+                }
+            },
+
+            restart() {
+                document.getElementById('gameOverScreen').classList.add('hidden');
+                document.getElementById('startScreen').classList.remove('hidden');
+                this.state = 'start';
+                this.closeTowerMenu();
+            },
+
+            loop() {
+                const now = Date.now();
+                const delta = Math.min((now - (this.lastLoop || now)) / 1000, 0.1);
+                this.lastLoop = now;
+
+                this.update(delta);
+                this.draw();
+
+                requestAnimationFrame(() => this.loop());
+            }
+        };
+
+        window.onload = () => {
+            game.init();
+        };
+    </script>
 </body>
 </html>
