@@ -3,738 +3,1218 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SLOP or NOT</title>
+<title>SLOP DEFENSE</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0d1117;color:#e6edf3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;overflow:hidden;height:100vh;width:100vw;user-select:none}
-canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100}
-
-.screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;width:100vw;position:absolute;top:0;left:0}
-.screen.active{display:flex}
-
-/* START */
-#start-screen .title{font-size:72px;font-weight:800;letter-spacing:-2px;margin-bottom:8px}
-#start-screen .title .slop{color:#ff6b35}
-#start-screen .title .or{color:#8b949e}
-#start-screen .title .not{color:#00e5ff}
-#start-screen .subtitle{font-size:20px;color:#8b949e;margin-bottom:40px}
-#start-screen .instructions{font-size:16px;color:#c9d1d9;line-height:1.8;text-align:center;margin-bottom:48px;max-width:520px}
-#start-screen .instructions kbd{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:2px 8px;font-family:inherit;font-weight:600}
-#start-screen .instructions .key-s{color:#ff6b35}
-#start-screen .instructions .key-n{color:#00e5ff}
-#start-screen .start-prompt{font-size:18px;color:#8b949e;animation:pulse-glow 2s ease-in-out infinite}
-#start-screen .high-score-display{position:absolute;top:24px;right:32px;font-size:14px;color:#8b949e}
-@keyframes pulse-glow{0%,100%{opacity:.5}50%{opacity:1}}
-
-/* GAME */
-#game-screen{padding:24px}
-.game-hud{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:900px;padding:0 16px;position:absolute;top:24px}
-.hud-left{display:flex;gap:24px;align-items:center}
-.hud-right{display:flex;gap:24px;align-items:center}
-.score-display{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
-.combo-display{font-size:18px;font-weight:600;color:#ff6b35;transition:transform .15s ease}
-.hearts{font-size:22px;letter-spacing:4px}
-.hearts.danger{animation:heart-pulse .4s ease-in-out infinite}
-@keyframes heart-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
-.round-display{font-size:14px;color:#8b949e}
-
-.timer-container{width:100%;max-width:700px;height:6px;background:#21262d;border-radius:3px;position:absolute;top:80px;overflow:hidden}
-.timer-bar{height:100%;background:#00e5ff;border-radius:3px;transition:background .3s;width:100%}
-.timer-bar.warning{background:#f0883e}
-.timer-bar.danger{background:#f85149}
-
-.sentence-area{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;max-width:800px;text-align:center;padding:0 32px}
-.sentence-text{font-size:28px;font-weight:500;line-height:1.5;opacity:0;transform:translateY(20px);transition:opacity .3s ease,transform .3s ease}
-.sentence-text.visible{opacity:1;transform:translateY(0)}
-.sentence-text.exit{opacity:0;transform:translateY(-20px)}
-
-.result-overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s;z-index:50}
-.result-overlay.show{opacity:1}
-.result-verdict{font-size:48px;font-weight:800;margin-bottom:8px}
-.result-verdict.correct{color:#3fb950}
-.result-verdict.wrong{color:#f85149}
-.result-category{font-size:16px;color:#8b949e;margin-bottom:12px}
-.result-slap{font-size:14px;font-weight:600;color:#ff6b35;margin-bottom:12px}
-.result-quip{font-size:15px;color:#c9d1d9;max-width:550px;font-style:italic;margin-bottom:8px}
-
-.streak-announce{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:36px;font-weight:800;color:#ff6b35;opacity:0;pointer-events:none;z-index:200;text-shadow:0 0 30px rgba(255,107,53,.5);white-space:nowrap}
-
-.key-hints{display:flex;gap:64px;position:absolute;bottom:40px}
-.key-hint{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600}
-.key-hint kbd{width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:22px;font-weight:700;border:2px solid}
-.key-hint.slop kbd{border-color:#ff6b35;color:#ff6b35;background:rgba(255,107,53,.1)}
-.key-hint.slop span{color:#ff6b35}
-.key-hint.not kbd{border-color:#00e5ff;color:#00e5ff;background:rgba(0,229,255,.1)}
-.key-hint.not span{color:#00e5ff}
-
-.slop-meter{position:absolute;right:24px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
-.slop-meter-label{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;writing-mode:vertical-rl;transform:rotate(180deg)}
-.slop-meter-bar{width:8px;height:160px;background:#21262d;border-radius:4px;position:relative;overflow:hidden}
-.slop-meter-fill{position:absolute;bottom:0;width:100%;background:linear-gradient(to top,#00e5ff,#ff6b35);border-radius:4px;transition:height .5s ease}
-.slop-meter-pct{font-size:13px;font-weight:600;color:#8b949e}
-
-.speed-notify{position:fixed;top:100px;left:50%;transform:translateX(-50%);font-size:28px;font-weight:800;color:#f0883e;opacity:0;pointer-events:none;z-index:200}
-
-/* GAME OVER */
-#gameover-screen{padding:32px}
-.go-card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:40px 48px;max-width:520px;width:100%}
-.go-header{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
-.go-title{font-size:32px;font-weight:800;margin-bottom:24px}
-.go-grade{font-size:80px;font-weight:800;text-align:center;margin-bottom:16px}
-.go-grade.s-tier{color:#3fb950}.go-grade.a-tier{color:#00e5ff}.go-grade.b-tier{color:#58a6ff}.go-grade.c-tier{color:#f0883e}.go-grade.d-tier{color:#ff6b35}.go-grade.f-tier{color:#f85149}
-.go-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin-bottom:24px}
-.go-stat{display:flex;flex-direction:column}
-.go-stat-label{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:1px}
-.go-stat-value{font-size:22px;font-weight:700}
-.go-comment{font-size:15px;color:#c9d1d9;font-style:italic;margin-bottom:24px;line-height:1.5;border-left:3px solid #30363d;padding-left:16px}
-.go-new-high{font-size:14px;font-weight:600;color:#3fb950;margin-bottom:16px;text-align:center}
-.go-buttons{display:flex;gap:16px;justify-content:center}
-.go-btn{padding:12px 28px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;border:none;transition:transform .1s}
-.go-btn:active{transform:scale(.96)}
-.go-btn.play-again{background:#ff6b35;color:#fff}
-.go-btn.share{background:#21262d;color:#c9d1d9;border:1px solid #30363d}
-
-.shake{animation:screen-shake .2s ease}
-@keyframes screen-shake{0%,100%{transform:translate(0)}10%{transform:translate(-8px,4px)}20%{transform:translate(6px,-4px)}30%{transform:translate(-4px,6px)}40%{transform:translate(4px,-2px)}50%{transform:translate(-2px,4px)}}
-.flash-correct{animation:flash-green .3s ease}
-@keyframes flash-green{0%{background:#0d1117}15%{background:rgba(63,185,80,.15)}100%{background:#0d1117}}
-.flash-wrong{animation:flash-red .3s ease}
-@keyframes flash-red{0%{background:#0d1117}15%{background:rgba(248,81,73,.2)}100%{background:#0d1117}}
-
-.the-cat{position:fixed;bottom:12px;font-size:28px;z-index:300;pointer-events:none;opacity:0}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+#game-container{display:flex;flex:1;min-height:0}
+#sidebar{width:220px;background:#161b22;border-right:1px solid #30363d;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+#sidebar h2{text-align:center;padding:10px;color:#f0883e;font-size:14px;border-bottom:1px solid #30363d;letter-spacing:1px}
+.tower-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;border-bottom:1px solid #21262d;transition:background .15s}
+.tower-btn:hover{background:#21262d}
+.tower-btn.selected{background:#1f6feb33;border-left:3px solid #1f6feb}
+.tower-btn.disabled{opacity:.4;cursor:not-allowed}
+.tower-emoji{font-size:24px;width:32px;text-align:center}
+.tower-info{flex:1;min-width:0}
+.tower-name{font-size:12px;font-weight:600;color:#e6edf3}
+.tower-cost{font-size:11px;color:#f0883e}
+.tower-desc{font-size:10px;color:#8b949e;line-height:1.3}
+#canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-width:0}
+canvas{display:block;image-rendering:auto;max-width:100%;max-height:100%}
+#bottom-bar{height:44px;background:#161b22;border-top:1px solid #30363d;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:13px;flex-shrink:0}
+.bar-item{display:flex;align-items:center;gap:6px}
+.bar-label{color:#8b949e}
+.bar-value{color:#e6edf3;font-weight:600}
+.bar-value.gold{color:#f0883e}
+.bar-value.health{color:#3fb950}
+.bar-value.health.warn{color:#d29922}
+.bar-value.health.danger{color:#f85149}
+#wave-btn{background:#238636;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;transition:background .15s}
+#wave-btn:hover{background:#2ea043}
+#wave-btn:disabled{background:#21262d;color:#484f58;cursor:not-allowed}
+#overlay{position:fixed;inset:0;background:rgba(13,17,23,.92);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+#overlay.hidden{display:none}
+#screen{max-width:650px;width:90%;padding:40px;text-align:center}
+#screen h1{font-size:48px;font-weight:800;color:#f0883e;text-shadow:0 0 30px rgba(240,136,62,.4);margin-bottom:8px;letter-spacing:2px}
+#screen .subtitle{color:#8b949e;font-size:15px;margin-bottom:28px;line-height:1.5}
+#screen .tower-preview{text-align:left;margin:0 auto 20px;max-width:420px}
+#screen .tower-preview div{padding:4px 0;font-size:13px;color:#c9d1d9}
+#screen .tower-preview span.emoji{margin-right:6px;font-size:16px}
+#screen .enemy-preview{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:28px}
+#screen .enemy-preview span{font-size:12px;color:#8b949e;padding:4px 10px;background:#21262d;border-radius:12px}
+#start-btn,#restart-btn,#endless-btn{background:#f0883e;color:#0d1117;border:none;padding:12px 32px;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;margin:6px;transition:transform .1s,background .15s}
+#start-btn:hover,#restart-btn:hover,#endless-btn:hover{background:#f09848;transform:scale(1.03)}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;text-align:left;max-width:360px;margin:16px auto;font-size:13px}
+.stats-grid .label{color:#8b949e}.stats-grid .val{color:#e6edf3;font-weight:600;text-align:right}
+.grade{font-size:64px;font-weight:900;margin:10px 0}
+#upgrade-menu{position:absolute;background:#1c2128;border:1px solid #30363d;border-radius:8px;padding:12px;min-width:180px;z-index:50;display:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#upgrade-menu h4{font-size:13px;color:#e6edf3;margin-bottom:6px}
+#upgrade-menu .info{font-size:11px;color:#8b949e;margin-bottom:8px}
+#upgrade-menu button{display:block;width:100%;padding:6px;margin:4px 0;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600}
+#upgrade-btn{background:#238636;color:#fff}
+#upgrade-btn:hover{background:#2ea043}
+#upgrade-btn:disabled{background:#21262d;color:#484f58;cursor:not-allowed}
+#sell-btn{background:#b6232340;color:#f85149;border:1px solid #f8514930}
+#sell-btn:hover{background:#b6232360}
+#mute-btn{position:absolute;top:8px;right:8px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;z-index:10}
 </style>
 </head>
 <body>
-
-<canvas id="particles"></canvas>
-
-<div id="start-screen" class="screen active">
-  <div class="high-score-display" id="start-high-score"></div>
-  <div class="title"><span class="slop">SLOP</span> <span class="or">or</span> <span class="not">NOT</span></div>
-  <div class="subtitle">Can you tell AI garbage from real writing?</div>
-  <div class="instructions">
-    Press <kbd class="key-s">S</kbd> if it's SLOP. Press <kbd class="key-n">N</kbd> if it's NOT.<br>
-    Don't let the buzzwords fool you.
-  </div>
-  <div class="start-prompt">Press SPACE to start</div>
+<div id="overlay">
+<div id="screen"></div>
 </div>
-
-<div id="game-screen" class="screen">
-  <div class="game-hud">
-    <div class="hud-left">
-      <div class="score-display" id="score">0</div>
-      <div class="combo-display" id="combo"></div>
-    </div>
-    <div class="hud-right">
-      <div class="round-display" id="round-num">Round 1</div>
-      <div class="hearts" id="hearts"></div>
-    </div>
-  </div>
-  <div class="timer-container"><div class="timer-bar" id="timer-bar"></div></div>
-  <div class="sentence-area">
-    <div class="sentence-text" id="sentence-text"></div>
-  </div>
-  <div class="result-overlay" id="result-overlay">
-    <div class="result-verdict" id="result-verdict"></div>
-    <div class="result-category" id="result-category"></div>
-    <div class="result-slap" id="result-slap"></div>
-    <div class="result-quip" id="result-quip"></div>
-  </div>
-  <div class="key-hints">
-    <div class="key-hint slop"><kbd>S</kbd><span>SLOP</span></div>
-    <div class="key-hint not"><kbd>N</kbd><span>NOT SLOP</span></div>
-  </div>
-  <div class="slop-meter">
-    <div class="slop-meter-pct" id="slop-pct">0%</div>
-    <div class="slop-meter-bar"><div class="slop-meter-fill" id="slop-fill"></div></div>
-    <div class="slop-meter-label">SLOP-O-METER</div>
-  </div>
+<div id="game-container">
+<div id="sidebar">
+<h2>TOWERS</h2>
 </div>
-
-<div id="gameover-screen" class="screen">
-  <div class="go-card">
-    <div class="go-header">Content Quality Review - Q1 2026</div>
-    <div class="go-title">Performance Review</div>
-    <div class="go-grade" id="go-grade"></div>
-    <div class="go-stats">
-      <div class="go-stat"><span class="go-stat-label">Final Score</span><span class="go-stat-value" id="go-score"></span></div>
-      <div class="go-stat"><span class="go-stat-label">Highest Combo</span><span class="go-stat-value" id="go-combo"></span></div>
-      <div class="go-stat"><span class="go-stat-label">Slop Detection Rate</span><span class="go-stat-value" id="go-detect"></span></div>
-      <div class="go-stat"><span class="go-stat-label">False Positive Rate</span><span class="go-stat-value" id="go-false"></span></div>
-      <div class="go-stat"><span class="go-stat-label">Sentences Reviewed</span><span class="go-stat-value" id="go-reviewed"></span></div>
-      <div class="go-stat"><span class="go-stat-label">Accuracy</span><span class="go-stat-value" id="go-accuracy"></span></div>
-    </div>
-    <div class="go-comment" id="go-comment"></div>
-    <div class="go-new-high" id="go-new-high" style="display:none">NEW HIGH SCORE!</div>
-    <div class="go-buttons">
-      <button class="go-btn play-again" id="btn-again">PLAY AGAIN</button>
-      <button class="go-btn share" id="btn-share">SHARE SCORE</button>
-    </div>
-  </div>
+<div id="canvas-wrap">
+<canvas id="c"></canvas>
+<div id="upgrade-menu">
+<h4 id="um-title"></h4>
+<div class="info" id="um-info"></div>
+<button id="upgrade-btn">Upgrade</button>
+<button id="sell-btn">Sell</button>
 </div>
-
-<div class="streak-announce" id="streak-announce"></div>
-<div class="speed-notify" id="speed-notify">FASTER!</div>
-<div class="the-cat" id="the-cat">&#x1F408;</div>
-
+<button id="mute-btn">Sound: ON</button>
+</div>
+</div>
+<div id="bottom-bar">
+<div class="bar-item"><span class="bar-label">Wave</span><span class="bar-value" id="b-wave">0/15</span></div>
+<div class="bar-item"><span class="bar-label">Gold</span><span class="bar-value gold" id="b-gold">100</span></div>
+<div class="bar-item"><span class="bar-label">Castle</span><span class="bar-value health" id="b-health">100%</span></div>
+<div class="bar-item"><span class="bar-label">Score</span><span class="bar-value" id="b-score">0</span></div>
+<div class="bar-item"><span class="bar-label" id="b-timer-label"></span><span class="bar-value" id="b-timer"></span></div>
+<button id="wave-btn" disabled>NEXT WAVE</button>
+</div>
 <script>
-/* ===== SENTENCE DATABASE (85 sentences) ===== */
-var SENTENCES = [
-// ---- CLEAR SLOP (40) ----
-{text:"We're excited to leverage our synergistic capabilities to drive transformative outcomes across the ecosystem.",isSlop:true,category:"corporate",difficulty:1},
-{text:"This paradigm-shifting solution represents a fundamental reimagining of how we approach innovation.",isSlop:true,category:"press release",difficulty:1},
-{text:"At the intersection of technology and human potential, we're building something truly remarkable.",isSlop:true,category:"thought leadership",difficulty:1},
-{text:"We don't just build products -- we craft experiences that empower communities to thrive.",isSlop:true,category:"corporate",difficulty:1},
-{text:"Our north star has always been delivering best-in-class solutions that move the needle.",isSlop:true,category:"corporate",difficulty:1},
-{text:"This isn't just an update -- it's a love letter to our community.",isSlop:true,category:"blog post",difficulty:1},
-{text:"We're humbled and excited to announce this game-changing milestone.",isSlop:true,category:"press release",difficulty:1},
-{text:"Delving into the tapestry of open source, we find a rich landscape of opportunity.",isSlop:true,category:"thought leadership",difficulty:1},
-{text:"It's worth noting that this fundamentally changes the paradigm.",isSlop:true,category:"thought leadership",difficulty:1},
-{text:"Here's the thing: we're not just disrupting -- we're reimagining disruption itself.",isSlop:true,category:"thought leadership",difficulty:1},
-{text:"We're disrupting disruption by innovating innovation through a lens of innovative disruption.",isSlop:true,category:"thought leadership",difficulty:1},
-{text:"Think of it as Uber for your paradigms.",isSlop:true,category:"pitch deck",difficulty:1},
-{text:"This isn't just a product launch -- it's a movement, a mission, a moment, and a Monday.",isSlop:true,category:"press release",difficulty:1},
-{text:"In conclusion, I'd like to summarize by restating my key takeaway from this summary.",isSlop:true,category:"thought leadership",difficulty:1},
-{text:"The result? Game-changing. The impact? Transformative. The hotel? Trivago.",isSlop:true,category:"blog post",difficulty:1},
-{text:"Our holistic, end-to-end platform unlocks unprecedented value for stakeholders at every level.",isSlop:true,category:"corporate",difficulty:1},
-{text:"We're on a journey to redefine what's possible in this space.",isSlop:true,category:"corporate",difficulty:2},
-{text:"This represents a sea change in how the industry thinks about scalable impact.",isSlop:true,category:"press release",difficulty:2},
-{text:"By harnessing the power of AI, we're streamlining workflows to deliver robust, next-gen solutions.",isSlop:true,category:"corporate",difficulty:1},
-{text:"Our team is passionate about building tools that empower developers to do their best work.",isSlop:true,category:"blog post",difficulty:2},
-{text:"We stand at the precipice of a new era in developer productivity.",isSlop:true,category:"thought leadership",difficulty:1},
-{text:"Here's where it gets interesting: the synergies are already starting to compound.",isSlop:true,category:"thought leadership",difficulty:1},
-{text:"Let's unpack what this means for the future of collaborative innovation.",isSlop:true,category:"blog post",difficulty:1},
-{text:"Imagine a world where every developer has access to cutting-edge AI capabilities.",isSlop:true,category:"pitch deck",difficulty:1},
-{text:"It bears mentioning that our commitment to excellence remains unwavering.",isSlop:true,category:"corporate",difficulty:1},
-{text:"We're not just writing code -- we're authoring the next chapter of human progress.",isSlop:true,category:"thought leadership",difficulty:1},
-{text:"This milestone underscores our relentless focus on delivering transformative developer experiences.",isSlop:true,category:"press release",difficulty:2},
-{text:"Notably, our platform has achieved remarkable traction among enterprise stakeholders.",isSlop:true,category:"corporate",difficulty:1},
-{text:"Despite its challenges, this initiative has quietly become the backbone of our innovation strategy.",isSlop:true,category:"corporate",difficulty:2},
-{text:"From ideation to deployment, we're reimagining the entire developer lifecycle.",isSlop:true,category:"pitch deck",difficulty:2},
-{text:"Our deeply integrated, AI-native approach empowers teams to unlock their full creative potential.",isSlop:true,category:"corporate",difficulty:1},
-{text:"The future of software isn't just automated -- it's deeply human, profoundly connected, and endlessly scalable.",isSlop:true,category:"thought leadership",difficulty:2},
-{text:"We're building bridges between communities, one API at a time.",isSlop:true,category:"blog post",difficulty:2},
-{text:"This serves as a testament to the power of cross-functional alignment.",isSlop:true,category:"corporate",difficulty:1},
-{text:"Our mission is to democratize innovation by making cutting-edge tools accessible to everyone, everywhere.",isSlop:true,category:"pitch deck",difficulty:2},
-{text:"We believe in the transformative power of open collaboration to drive meaningful, lasting change.",isSlop:true,category:"blog post",difficulty:2},
-{text:"It's not about the technology. It's about the people. It's about the impact. It's about the journey.",isSlop:true,category:"thought leadership",difficulty:1},
-{text:"We've entered a new chapter -- one defined by purposeful innovation and stakeholder-centric design.",isSlop:true,category:"corporate",difficulty:2},
-{text:"This is more than a feature request. This is a mandate for the future.",isSlop:true,category:"blog post",difficulty:2},
-{text:"Our AI-first strategy positions us to capture asymmetric upside in adjacent verticals.",isSlop:true,category:"pitch deck",difficulty:2},
+// ==================== CONSTANTS ====================
+const CW=800,CH=560,COLS=20,ROWS=14,CS=40;
+const BASE_SPEED=1.5;
+const WAVE_DELAY=12;
+const MAX_WAVE=15;
 
-// ---- CLEAR NOT SLOP (30) ----
-{text:"The server was down for 47 minutes because someone deployed to prod on a Friday.",isSlop:false,category:"incident report",difficulty:1},
-{text:"This function returns null when the input array is empty, which is wrong.",isSlop:false,category:"code review",difficulty:1},
-{text:"We spent three weeks on this feature and then cut it. Sometimes that's the right call.",isSlop:false,category:"meeting notes",difficulty:1},
-{text:"The test suite takes 11 minutes. That's too slow. We're fixing it.",isSlop:false,category:"engineering update",difficulty:1},
-{text:"I don't know why this works but it does and I'm afraid to change it.",isSlop:false,category:"code comment",difficulty:1},
-{text:"Updated the regex. Previous one missed edge cases with unicode characters.",isSlop:false,category:"commit message",difficulty:1},
-{text:"Meeting notes: agreed to deprecate the v1 API by June. No objections.",isSlop:false,category:"meeting notes",difficulty:1},
-{text:"The bug was in line 47 of the auth middleware. Off-by-one in the token expiry check.",isSlop:false,category:"incident report",difficulty:1},
-{text:"Closes #4892. Added retry logic for transient network failures.",isSlop:false,category:"commit message",difficulty:1},
-{text:"Our P95 latency went from 340ms to 89ms after we added the index.",isSlop:false,category:"engineering update",difficulty:1},
-{text:"// TODO: fix this later (committed 3 years ago)",isSlop:false,category:"code comment",difficulty:1},
-{text:"Works on my machine (Docker edition).",isSlop:false,category:"code comment",difficulty:1},
-{text:"Rewrote in Rust btw.",isSlop:false,category:"commit message",difficulty:1},
-{text:"LGTM (reviewer spent 14 seconds on a 2000-line PR).",isSlop:false,category:"code review",difficulty:1},
-{text:"This PR removes 4,000 lines of code and adds 12. It took six months.",isSlop:false,category:"code review",difficulty:1},
-{text:"Removed dead code. Nobody called this function since 2019.",isSlop:false,category:"commit message",difficulty:1},
-{text:"The dashboard is broken because the API returns dates as strings in some regions and integers in others.",isSlop:false,category:"bug report",difficulty:1},
-{text:"We have 14 microservices. Three of them do anything. The rest are load-bearing YAML.",isSlop:false,category:"engineering update",difficulty:1},
-{text:"Pinned the dependency to 2.3.1 because 2.4.0 broke everything and the changelog just says 'improvements'.",isSlop:false,category:"commit message",difficulty:2},
-{text:"Rolled back. The migration worked in staging but dropped a column in prod that three services depend on.",isSlop:false,category:"incident report",difficulty:1},
-{text:"Fixed: config parser crashes if you pass it an emoji. Somehow this came up in production.",isSlop:false,category:"commit message",difficulty:1},
-{text:"We shipped the fix at 2am. On-call got paged four times. Buying them lunch.",isSlop:false,category:"incident report",difficulty:1},
-{text:"The Slack bot responds to every message containing 'help' which includes 'I can't help but notice'.",isSlop:false,category:"bug report",difficulty:1},
-{text:"This CSV has 340,000 rows and every single email address is test@example.com.",isSlop:false,category:"bug report",difficulty:1},
-{text:"Cache invalidation bug. Again. The two hard problems are undefeated.",isSlop:false,category:"engineering update",difficulty:1},
-{text:"Ran the profiler. 60% of the time is spent parsing config files we never read.",isSlop:false,category:"engineering update",difficulty:2},
-{text:"The customer says the button 'doesn't work.' Button has no click handler.",isSlop:false,category:"bug report",difficulty:1},
-{text:"Reverted my own PR from yesterday. It fixed the race condition but introduced a deadlock.",isSlop:false,category:"commit message",difficulty:2},
-{text:"Added a 200ms sleep because the real fix would take a sprint and we ship Monday.",isSlop:false,category:"commit message",difficulty:1},
-{text:"Log says 'Error: success'. I have questions.",isSlop:false,category:"bug report",difficulty:1},
-{text:"We don't have documentation for this endpoint. We have a Slack message from 2021 and a prayer.",isSlop:false,category:"engineering update",difficulty:1},
-{text:"PR description: 'trust me'. 47 files changed.",isSlop:false,category:"code review",difficulty:1},
-{text:"Replaced the hand-rolled auth system with a library because I don't want to be on the news.",isSlop:false,category:"commit message",difficulty:2},
-{text:"Flaky test. Passes 99% of the time. Fails every time someone's watching.",isSlop:false,category:"bug report",difficulty:1},
-
-// ---- AMBIGUOUS / TRICKY (15) ----
-{text:"We believe open source is the foundation of modern software development.",isSlop:true,category:"corporate (sounds right but it's textbook slop phrasing)",difficulty:2},
-{text:"This release includes several exciting improvements.",isSlop:true,category:"changelog (every changelog ever -- zero specifics)",difficulty:2},
-{text:"We're committed to supporting the developer community.",isSlop:true,category:"corporate (committed to what exactly?)",difficulty:2},
-{text:"Breaking changes: removed the legacy authentication flow.",isSlop:false,category:"changelog (dramatic but factual)",difficulty:2},
-{text:"Our team has been hard at work on this.",isSlop:true,category:"blog post (everyone says this, nobody learns anything from it)",difficulty:3},
-{text:"Security is our top priority.",isSlop:true,category:"corporate (if it were, you wouldn't need to say it)",difficulty:2},
-{text:"We value your feedback and take it seriously.",isSlop:true,category:"corporate (the sentence companies say right before ignoring you)",difficulty:3},
-{text:"We made mistakes and we're working to fix them.",isSlop:false,category:"incident response (vague but at least it's honest)",difficulty:3},
-{text:"This project would not be possible without our amazing contributors.",isSlop:true,category:"blog post (nice sentiment, zero specifics)",difficulty:3},
-{text:"Performance improvements across the board.",isSlop:true,category:"changelog (which performance? what board?)",difficulty:2},
-{text:"Thank you to everyone who reported issues.",isSlop:false,category:"changelog (real maintainers actually write this)",difficulty:3},
-{text:"We're taking a different approach this time.",isSlop:false,category:"engineering update (vague but genuinely human)",difficulty:3},
-{text:"Stability and reliability improvements.",isSlop:true,category:"changelog (the sentence that means 'we fixed bugs we won't tell you about')",difficulty:2},
-{text:"We hear you. We're working on it.",isSlop:false,category:"maintainer response (probably real, probably exhausted)",difficulty:3},
-{text:"Big things are coming. Stay tuned.",isSlop:true,category:"blog post (hype with zero information)",difficulty:2},
-{text:"Reduced memory usage by approximately 30%.",isSlop:false,category:"changelog (has a number -- suspicious levels of specificity for slop)",difficulty:2},
-{text:"We're grateful for the trust you place in us.",isSlop:true,category:"corporate (trust is earned not narrated)",difficulty:3},
-{text:"Fixed a bug that only appeared on the second Tuesday of months with 31 days.",isSlop:false,category:"commit message (too specific to be fake)",difficulty:2},
-{text:"This update lays the groundwork for future improvements.",isSlop:true,category:"changelog (translation: nothing visible changed)",difficulty:3},
-{text:"Migrated from Jenkins to GitHub Actions. Build time went from 22 minutes to 6.",isSlop:false,category:"engineering update (specific numbers = real)",difficulty:2},
-{text:"We're investing heavily in developer experience.",isSlop:true,category:"corporate (investing what, in what, for whom?)",difficulty:3},
-{text:"Deprecated. Use fetchUserById() instead.",isSlop:false,category:"code comment (terse and useful -- peak human)",difficulty:2},
-{text:"I'm thrilled to share some thoughts on the future of AI-driven development workflows.",isSlop:true,category:"blog post (thrilled is a red flag)",difficulty:2},
-{text:"Bumped lodash from 4.17.20 to 4.17.21. Changelog says 'security fix' with no details.",isSlop:false,category:"commit message (real dev energy -- annoyed and compliant)",difficulty:3},
-{text:"We need to talk about technical debt.",isSlop:false,category:"engineering update (the scariest sentence in software)",difficulty:2}
+// Path waypoints (pixel coords)
+const WAYPOINTS=[
+{x:20,y:100},{x:700,y:100},{x:700,y:260},{x:100,y:260},{x:100,y:420},{x:780,y:420}
 ];
 
-/* ===== COMMENTARY ===== */
-var QUIPS = {
-  correctSlop: [
-    "Good eye. That sentence had all the buzzwords and none of the information.",
-    "Nailed it. You could smell the corporate from a mile away.",
-    "Correct. That sentence was 40 words of absolutely nothing.",
-    "Yep, pure slop. Written by someone who bills by the adjective.",
-    "Caught it. That one scored off the charts on the vagueness index.",
-    "Right. That sentence could apply to literally any company doing literally anything.",
-    "Textbook slop. Not a single concrete detail in the whole thing."
-  ],
-  missedSlop: [
-    "You let that through? That sentence had three buzzwords and zero specifics.",
-    "That was slop. The word 'transformative' should have been your first clue.",
-    "Missed it. Re-read it -- does it actually SAY anything?",
-    "That one slipped by. Ask yourself: could this sentence describe any product ever made?",
-    "Slop. If you remove the adjectives, there's no sentence left.",
-    "That was AI-generated filler dressed up in a suit. Better luck next time."
-  ],
-  wronglyCalledSlop: [
-    "That was actually human-written. Real people are allowed to be vague sometimes.",
-    "Nope, that was real. Not every short sentence is suspicious.",
-    "False alarm. That one had actual information in it if you read carefully.",
-    "Humans wrote that. Specificity doesn't make it AI -- it makes it good writing.",
-    "That was real. The lack of buzzwords was your clue.",
-    "Wrong call. Real writing can sound polished without being slop."
-  ],
-  correctNotSlop: [
-    "Yep, real human wrote that. You can tell by the specificity.",
-    "Correct. Real writing has details, numbers, or at least an opinion.",
-    "That was human. No AI would admit it doesn't know why something works.",
-    "Right. Real devs write like that -- blunt, specific, sometimes tired.",
-    "Human-written. The frustration was authentic.",
-    "Real. You can practically hear someone typing that at 2am."
-  ]
+// Path cells
+const pathCells=new Set();
+function initPathCells(){
+const segs=[[0,2,17,2],[17,3,17,5],[17,6,2,6],[2,7,2,9],[2,10,19,10]];
+for(const[x1,y1,x2,y2]of segs){
+const sx=Math.min(x1,x2),ex=Math.max(x1,x2),sy=Math.min(y1,y2),ey=Math.max(y1,y2);
+for(let x=sx;x<=ex;x++)for(let y=sy;y<=ey;y++)pathCells.add(x+','+y);
+}}
+initPathCells();
+
+function isPathCell(gx,gy){return pathCells.has(gx+','+gy)}
+function isValidPlacement(gx,gy){
+if(gx<0||gx>=COLS||gy<0||gy>=ROWS)return false;
+if(isPathCell(gx,gy))return false;
+const dirs=[[0,-1],[0,1],[-1,0],[1,0]];
+for(const[dx,dy]of dirs)if(isPathCell(gx+dx,gy+dy))return true;
+return false;
+}
+
+// ==================== TOWER DEFINITIONS ====================
+const TOWER_DEFS={
+dog:{name:'Dog',emoji:'\u{1F415}',cost:20,range:80,rate:1.2,dmg:8,desc:'Barks at slop. Good boy.',
+  projType:'woof',projText:'WOOF',friendlyFire:0,aoe:0,
+  upgrade:{cost:40,name:'Big Dog',dmg:15,range:100,desc:'Louder bark. More bite.'}},
+nerd:{name:'Well Actually Guy',emoji:'\u{1F913}',cost:45,range:100,rate:0.6,dmg:20,desc:'Pedantic. Effective.',
+  projType:'text',projText:'well actually...',friendlyFire:0.05,aoe:0,
+  upgrade:{cost:70,name:'Professor',dmg:35,range:120,desc:'Citation needed.'}},
+duck:{name:'Rubber Duck',emoji:'\u{1F986}',cost:35,range:90,rate:0.8,dmg:12,desc:'Reveals hidden slop.',
+  projType:'duck',projText:'\u{1F986}',friendlyFire:0,aoe:0,bounces:2,
+  upgrade:{cost:55,name:'Golden Duck',dmg:18,bounces:3,desc:'Extra bouncy.'}},
+trebuchet:{name:'Trebuchet',emoji:'\u{1F3F0}',cost:75,range:160,rate:0.3,dmg:45,desc:'Area damage. Watch for friendly fire!',
+  projType:'boulder',projText:'\u25CF',friendlyFire:1,aoe:30,
+  upgrade:{cost:100,name:'Superior Siege Engine',dmg:70,desc:'Flaming boulders.'}},
+coffee:{name:'Coffee Machine',emoji:'\u2615',cost:50,range:100,rate:0,dmg:0,desc:'Boosts nearby tower speed 50%.',
+  projType:null,friendlyFire:0,aoe:0,isSupport:true,
+  upgrade:{cost:80,name:'Espresso Machine',range:130,boostMult:0.75,desc:'Even faster. Even stronger.'}},
+troll:{name:'Troll',emoji:'\u{1F4A9}',cost:90,range:130,rate:1.0,dmg:25,desc:'Chaos. Pure chaos.',
+  projType:'emoji',friendlyFire:0.15,aoe:0,
+  upgrade:{cost:130,name:'Influencer',dmg:40,desc:'Hot takes every 15s. Explosions.'}}
 };
 
-var SLAP_COMMENTS = [
-  "WEAPONIZED VAGUENESS","MAXIMUM BUZZWORD DENSITY","AGGRESSIVELY MEANINGLESS",
-  "CORPORATE WORD SALAD","SAYS NOTHING, LOUDLY","ADJECTIVE OVERLOAD",
-  "PURE THOUGHT FOG","SEMANTIC EMPTINESS","CONTENT-FREE ZONE","HYPE SINGULARITY"
+const TOWER_ORDER=['dog','nerd','duck','trebuchet','coffee','troll'];
+const CHAOS_EMOJI=['\u{1F480}','\u{1F525}','\u{1F440}','\u{1F624}','\u{1F5FF}'];
+
+// ==================== ENEMY DEFINITIONS ====================
+const BUZZWORDS=['synergy','leverage','robust','paradigm','utilize','streamline','harness','disruptive','scalable','ideation','holistic','agile'];
+const CORP_PHRASES=['move-the-needle','circle-back','low-hanging-fruit','best-in-class','game-changing','deep-dive','value-add','thought-leader'];
+const THOUGHT_WORDS=['arguably','remarkably','notably','fundamentally','interestingly'];
+const STEALTH_WORDS=['innovative','strategic','comprehensive','optimized','dynamic'];
+const BOMB_WORDS=["it's-worth-noting",'at-the-end-of-the-day','moving-forward'];
+const BOSS_WORDS=['THOUGHT PIECE','LISTICLE','HOT TAKE','MANIFESTO','WHITEPAPER'];
+const GOOD_WORDS=['bug','fix','deploy','test','merge','ship','build','debug','patch','commit','refactor','lint','push','pull','rebase','grep'];
+
+function rnd(arr){return arr[Math.floor(Math.random()*arr.length)]}
+
+// ==================== WAVE DEFINITIONS ====================
+const WAVES=[
+null, // index 0 unused
+{enemies:[{t:'buzz',n:6},{t:'good',n:2}],interval:1500},
+{enemies:[{t:'buzz',n:10},{t:'good',n:3}],interval:1200},
+{enemies:[{t:'buzz',n:6},{t:'corp',n:4},{t:'good',n:3}],interval:1200},
+{enemies:[{t:'thought',n:10},{t:'buzz',n:4},{t:'good',n:3}],interval:400},
+{enemies:[{t:'boss',n:1},{t:'buzz',n:8},{t:'good',n:3}],interval:1200},
+{enemies:[{t:'buzz',n:8},{t:'corp',n:4},{t:'stealth',n:2},{t:'good',n:4}],interval:1100},
+{enemies:[{t:'thought',n:6},{t:'corp',n:5},{t:'bomb',n:2},{t:'good',n:4}],interval:1000},
+{enemies:[{t:'buzz',n:14},{t:'bomb',n:3},{t:'good',n:5}],interval:900},
+{enemies:[{t:'stealth',n:6},{t:'corp',n:6},{t:'good',n:4}],interval:1000},
+{enemies:[{t:'boss',n:2},{t:'buzz',n:10},{t:'good',n:5}],interval:1100},
+{enemies:[{t:'buzz',n:18},{t:'bomb',n:4},{t:'good',n:6}],interval:600},
+{enemies:[{t:'stealth',n:8},{t:'thought',n:8},{t:'good',n:5}],interval:700},
+{enemies:[{t:'corp',n:8},{t:'bomb',n:4},{t:'thought',n:6},{t:'good',n:5}],interval:800},
+{enemies:[{t:'buzz',n:8},{t:'corp',n:5},{t:'thought',n:5},{t:'stealth',n:4},{t:'bomb',n:3},{t:'good',n:6}],interval:700},
+{enemies:[{t:'boss',n:3},{t:'buzz',n:15},{t:'stealth',n:6},{t:'good',n:8}],interval:600},
 ];
 
-var STREAK_MSGS = {3:"Warming up...",5:"Slop Detector Engaged",8:"EAGLE-EYED EDITOR",10:"ABSOLUTE SLOP DESTROYER",15:"YOU COULD REPLACE AN ENTIRE EDITORIAL TEAM",20:"THE AI IS AFRAID OF YOU"};
+// ==================== SOUND SYSTEM ====================
+let audioCtx=null,soundOn=true;
+function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)()}
+function playSound(type){
+if(!soundOn||!audioCtx)return;
+try{
+const now=audioCtx.currentTime;
+const g=audioCtx.createGain();g.connect(audioCtx.destination);
+switch(type){
+case'shoot':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.value=800+Math.random()*400;
+o.connect(g);g.gain.setValueAtTime(.15,now);g.gain.exponentialRampToValueAtTime(.001,now+.05);
+o.start(now);o.stop(now+.05);break}
+case'bark':{const n=audioCtx.createBufferSource();const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*.08,audioCtx.sampleRate);
+const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/d.length*3);
+n.buffer=buf;n.connect(g);g.gain.setValueAtTime(.2,now);g.gain.exponentialRampToValueAtTime(.001,now+.08);
+n.start(now);break}
+case'pop':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(600,now);
+o.frequency.exponentialRampToValueAtTime(200,now+.1);o.connect(g);
+g.gain.setValueAtTime(.15,now);g.gain.exponentialRampToValueAtTime(.001,now+.1);
+o.start(now);o.stop(now+.1);break}
+case'bossdeath':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.value=60;o.connect(g);
+g.gain.setValueAtTime(.3,now);g.gain.exponentialRampToValueAtTime(.001,now+.3);
+o.start(now);o.stop(now+.3);
+const n=audioCtx.createBufferSource();const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*.3,audioCtx.sampleRate);
+const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/d.length*4);
+n.buffer=buf;const g2=audioCtx.createGain();g2.connect(audioCtx.destination);
+g2.gain.setValueAtTime(.15,now);g2.gain.exponentialRampToValueAtTime(.001,now+.3);
+n.connect(g2);n.start(now);break}
+case'goodword':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(660,now);
+o.frequency.setValueAtTime(880,now+.05);o.connect(g);
+g.gain.setValueAtTime(.12,now);g.gain.exponentialRampToValueAtTime(.001,now+.1);
+o.start(now);o.stop(now+.1);break}
+case'slophit':{const o=audioCtx.createOscillator();o.type='sawtooth';o.frequency.value=100;o.connect(g);
+g.gain.setValueAtTime(.15,now);g.gain.exponentialRampToValueAtTime(.001,now+.2);
+o.start(now);o.stop(now+.2);break}
+case'place':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(200,now);
+o.frequency.exponentialRampToValueAtTime(100,now+.08);o.connect(g);
+g.gain.setValueAtTime(.2,now);g.gain.exponentialRampToValueAtTime(.001,now+.08);
+o.start(now);o.stop(now+.08);break}
+case'wavestart':{const o=audioCtx.createOscillator();o.type='square';o.frequency.value=300;o.connect(g);
+g.gain.setValueAtTime(.12,now);g.gain.exponentialRampToValueAtTime(.001,now+.2);
+o.start(now);o.stop(now+.2);break}
+case'waveclear':{[523,659,784].forEach((f,i)=>{const o=audioCtx.createOscillator();o.type='sine';
+o.frequency.value=f;const gi=audioCtx.createGain();gi.connect(audioCtx.destination);
+gi.gain.setValueAtTime(.1,now+i*.1);gi.gain.exponentialRampToValueAtTime(.001,now+i*.1+.15);
+o.connect(gi);o.start(now+i*.1);o.stop(now+i*.1+.15)});break}
+case'bossspawn':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.value=80;o.connect(g);
+g.gain.setValueAtTime(.2,now);g.gain.exponentialRampToValueAtTime(.001,now+.25);
+o.start(now);o.stop(now+.25);break}
+case'upgrade':{[440,554,659].forEach((f,i)=>{const o=audioCtx.createOscillator();o.type='sine';
+o.frequency.value=f;const gi=audioCtx.createGain();gi.connect(audioCtx.destination);
+gi.gain.setValueAtTime(.1,now+i*.07);gi.gain.exponentialRampToValueAtTime(.001,now+i*.07+.12);
+o.connect(gi);o.start(now+i*.07);o.stop(now+i*.07+.12)});break}
+case'bomb':{const n=audioCtx.createBufferSource();const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*.3,audioCtx.sampleRate);
+const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/d.length*5)*(1+Math.sin(i*.01)*0.5);
+n.buffer=buf;n.connect(g);g.gain.setValueAtTime(.25,now);g.gain.exponentialRampToValueAtTime(.001,now+.3);
+n.start(now);break}
+case'moo':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(200,now);
+const lfo=audioCtx.createOscillator();lfo.frequency.value=6;const lfoG=audioCtx.createGain();lfoG.gain.value=30;
+lfo.connect(lfoG);lfoG.connect(o.frequency);lfo.start(now);lfo.stop(now+.4);
+o.connect(g);g.gain.setValueAtTime(.15,now);g.gain.setValueAtTime(.15,now+.2);
+g.gain.exponentialRampToValueAtTime(.001,now+.4);o.start(now);o.stop(now+.4);break}
+case'hottake':{[200,252,300].forEach(f=>{const o=audioCtx.createOscillator();o.type='square';
+o.frequency.value=f;const gi=audioCtx.createGain();gi.connect(audioCtx.destination);
+gi.gain.setValueAtTime(.07,now);gi.gain.exponentialRampToValueAtTime(.001,now+.3);
+o.connect(gi);o.start(now);o.stop(now+.3)});break}
+case'sell':{const o=audioCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(500,now);
+o.frequency.exponentialRampToValueAtTime(300,now+.1);o.connect(g);
+g.gain.setValueAtTime(.12,now);g.gain.exponentialRampToValueAtTime(.001,now+.1);
+o.start(now);o.stop(now+.1);break}
+}}catch(e){}}
 
-var REVIEW_COMMENTS = {
-  S:"Employee demonstrates supernatural ability to detect corporate nonsense. Promoting immediately.",
-  A:"Strong performer. Rarely fooled by buzzwords. Minor slip-ups forgiven due to overall excellence.",
-  B:"Solid slop detection skills. Some ambiguous sentences got through, but the fundamentals are there.",
-  C:"Acceptable performance. Recommend additional training in identifying vague platitudes.",
-  D:"Concerning number of buzzwords went undetected. Employee may be writing slop themselves.",
-  F:"Employee let virtually all slop through undetected. We're not angry, just disappointed. Actually, we're angry too."
+// ==================== GAME STATE ====================
+const G={
+state:'menu',wave:0,gold:100,score:0,castleHP:100,
+towers:[],enemies:[],projectiles:[],particles:[],floatTexts:[],coffeePickups:[],
+selectedType:null,selectedTower:null,
+waveTimer:0,waveActive:false,spawnQueue:[],spawnTimer:0,
+betweenWaves:false,countdown:0,
+endless:false,endlessWave:0,
+mouseX:0,mouseY:0,mouseGX:-1,mouseGY:-1,
+castleSlopWords:[],
+stats:{killed:0,goodSaved:0,goodLost:0,goldEarned:0,towerKills:{}},
+lastTime:0,
+highScores:JSON.parse(localStorage.getItem('slopDefenseHS')||'{"campaign":0,"endless":0}')
 };
 
-/* ===== AUDIO (Web Audio API) ===== */
-var audioCtx;
-function ensureAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)()}
+// ==================== CANVAS SETUP ====================
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+canvas.width=CW;canvas.height=CH;
 
-function playCorrect(){
-  ensureAudio();var now=audioCtx.currentTime;
-  [523.25,659.25,783.99].forEach(function(f,i){
-    var o=audioCtx.createOscillator(),g=audioCtx.createGain();
-    o.type='sine';o.frequency.value=f;
-    g.gain.setValueAtTime(0.12,now+i*0.06);
-    g.gain.exponentialRampToValueAtTime(0.001,now+i*0.06+0.3);
-    o.connect(g);g.connect(audioCtx.destination);
-    o.start(now+i*0.06);o.stop(now+i*0.06+0.3);
-  });
+// ==================== HELPERS ====================
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function lerp(a,b,t){return a+(b-a)*t}
+function cellCenter(gx,gy){return{x:gx*CS+CS/2,y:gy*CS+CS/2}}
+function toGrid(px,py){return{gx:Math.floor(px/CS),gy:Math.floor(py/CS)}}
+
+function getPathProgress(enemy){
+let total=0;
+for(let i=0;i<WAYPOINTS.length-1;i++){
+const segLen=dist(WAYPOINTS[i],WAYPOINTS[i+1]);
+if(i<enemy.wpIndex)total+=segLen;
+else if(i===enemy.wpIndex)total+=segLen*enemy.wpT;
 }
-function playWrong(){
-  ensureAudio();var now=audioCtx.currentTime;
-  var o=audioCtx.createOscillator(),g=audioCtx.createGain();
-  o.type='square';o.frequency.value=110;
-  g.gain.setValueAtTime(0.15,now);
-  g.gain.exponentialRampToValueAtTime(0.001,now+0.4);
-  o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+0.4);
-}
-function playCombo(){
-  ensureAudio();var now=audioCtx.currentTime;
-  [880,1108.73,1318.51,1567.98].forEach(function(f,i){
-    var o=audioCtx.createOscillator(),g=audioCtx.createGain();
-    o.type='sine';o.frequency.value=f;
-    g.gain.setValueAtTime(0.08,now+i*0.07);
-    g.gain.exponentialRampToValueAtTime(0.001,now+i*0.07+0.25);
-    o.connect(g);g.connect(audioCtx.destination);
-    o.start(now+i*0.07);o.stop(now+i*0.07+0.25);
-  });
-}
-function playSpeed(){
-  ensureAudio();var now=audioCtx.currentTime;
-  var o=audioCtx.createOscillator(),g=audioCtx.createGain();
-  o.type='sawtooth';o.frequency.setValueAtTime(200,now);
-  o.frequency.exponentialRampToValueAtTime(800,now+0.15);
-  g.gain.setValueAtTime(0.1,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.2);
-  o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+0.2);
+return total;
 }
 
-/* ===== PARTICLES (canvas) ===== */
-var cvs=document.getElementById('particles');
-var pctx=cvs.getContext('2d');
-var particles=[];
-function resizeCanvas(){cvs.width=window.innerWidth;cvs.height=window.innerHeight}
-window.addEventListener('resize',resizeCanvas);resizeCanvas();
+function posOnPath(wpIndex,t){
+if(wpIndex>=WAYPOINTS.length-1)return{x:WAYPOINTS[WAYPOINTS.length-1].x,y:WAYPOINTS[WAYPOINTS.length-1].y};
+const a=WAYPOINTS[wpIndex],b=WAYPOINTS[wpIndex+1];
+return{x:lerp(a.x,b.x,t),y:lerp(a.y,b.y,t)};
+}
 
+// ==================== SPAWN HELPERS ====================
+function makeEnemy(type,extraHP){
+const hp=extraHP||1;
+let e={alive:true,wpIndex:0,wpT:0,x:WAYPOINTS[0].x,y:WAYPOINTS[0].y,
+  slowed:false,slowTimer:0,revealed:false,revealTimer:0,isGood:false,isBoss:false,
+  spawned:false,desperation:false,color:'#f0883e',radius:12,isStealth:false,isBomb:false};
+switch(type){
+case'buzz':Object.assign(e,{type:'buzz',word:rnd(BUZZWORDS),hp:25*hp,maxHP:25*hp,speed:1,value:8,color:'#f0883e',radius:12});break;
+case'corp':Object.assign(e,{type:'corp',word:rnd(CORP_PHRASES),hp:55*hp,maxHP:55*hp,speed:.7,value:15,color:'#c45a1a',radius:16});break;
+case'thought':Object.assign(e,{type:'thought',word:rnd(THOUGHT_WORDS),hp:12*hp,maxHP:12*hp,speed:2.2,value:4,color:'#e3b341',radius:9});break;
+case'stealth':Object.assign(e,{type:'stealth',word:rnd(STEALTH_WORDS),hp:35*hp,maxHP:35*hp,speed:1.1,value:20,color:'#58a6ff',radius:13,isStealth:true,revealTimer:120});break;
+case'bomb':Object.assign(e,{type:'bomb',word:rnd(BOMB_WORDS),hp:45*hp,maxHP:45*hp,speed:.8,value:12,color:'#f85149',radius:14,isBomb:true});break;
+case'boss':Object.assign(e,{type:'boss',word:rnd(BOSS_WORDS),hp:180*hp,maxHP:180*hp,speed:.35,value:40,color:'#6e1010',radius:22,isBoss:true});break;
+case'good':Object.assign(e,{type:'good',word:rnd(GOOD_WORDS),hp:999,maxHP:999,speed:1,value:0,color:'#56d4dd',radius:11,isGood:true});break;
+}
+return e;
+}
+
+function buildSpawnQueue(waveDef,hpMult){
+const q=[];
+for(const g of waveDef.enemies){
+for(let i=0;i<g.n;i++)q.push(g.t);
+}
+// shuffle but keep good words roughly mixed in
+for(let i=q.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[q[i],q[j]]=[q[j],q[i]]}
+return q.map(t=>makeEnemy(t,hpMult));
+}
+
+// ==================== TOWER CREATION ====================
+function placeTower(type,gx,gy){
+const def=TOWER_DEFS[type];
+const pos=cellCenter(gx,gy);
+const t={type,gx,gy,x:pos.x,y:pos.y,level:1,cooldown:0,kills:0,
+  disabled:false,disableTimer:0,
+  range:def.range,rate:def.rate,dmg:def.dmg,
+  friendlyFire:def.friendlyFire,aoe:def.aoe,
+  hotTakeTimer:type==='troll'?1800:0,
+  coffeeTimer:type==='coffee'?1200:0,
+  totalCost:def.cost,
+  bounces:def.bounces||0
+};
+return t;
+}
+
+// ==================== PROJECTILE CREATION ====================
+function fireProjectile(tower,target){
+const def=TOWER_DEFS[tower.type];
+let p={x:tower.x,y:tower.y,target,speed:5,dmg:tower.dmg,alive:true,
+  type:def.projType,text:def.projText,aoe:tower.aoe,friendlyFire:def.friendlyFire>=1,
+  bounces:tower.bounces||0,bouncesLeft:tower.bounces||0,
+  towerType:tower.type,isUpgraded:tower.level>1,
+  arcProgress:0,startX:tower.x,startY:tower.y,
+  targetX:target.x,targetY:target.y,
+  isCow:false,angle:0};
+// Trebuchet arc
+if(tower.type==='trebuchet'){
+  p.speed=3;p.targetX=target.x;p.targetY=target.y;
+  if(Math.random()<0.15){p.isCow=true;p.dmg*=2;p.text='\u{1F404}';playSound('moo')}
+}
+// Troll random direction
+if(tower.type==='troll'){
+  p.text=rnd(CHAOS_EMOJI);
+  if(Math.random()<0.2){
+    const angle=Math.random()*Math.PI*2;
+    p.target=null;p.vx=Math.cos(angle)*5;p.vy=Math.sin(angle)*5;
+  }
+}
+// Friendly fire check for nerd
+if(tower.type==='nerd'&&Math.random()<tower.friendlyFire){
+  const goods=G.enemies.filter(e=>e.alive&&e.isGood&&dist(tower,e)<tower.range);
+  if(goods.length)p.target=goods[Math.floor(Math.random()*goods.length)];
+}
+// Troll friendly fire
+if(tower.type==='troll'&&p.target&&Math.random()<tower.friendlyFire){
+  const goods=G.enemies.filter(e=>e.alive&&e.isGood&&dist(tower,e)<tower.range);
+  if(goods.length)p.target=goods[Math.floor(Math.random()*goods.length)];
+}
+// Nerd double damage to corp
+if(tower.type==='nerd'&&target.type==='corp')p.dmg*=2;
+return p;
+}
+
+// ==================== PARTICLES ====================
 function spawnParticles(x,y,color,count){
-  count=count||20;
-  for(var i=0;i<count;i++){
-    var angle=Math.random()*Math.PI*2,speed=2+Math.random()*4;
-    particles.push({x:x,y:y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,life:1,color:color,size:2+Math.random()*3});
+for(let i=0;i<count;i++){
+const angle=Math.random()*Math.PI*2,spd=1+Math.random()*3;
+G.particles.push({x,y,vx:Math.cos(angle)*spd,vy:Math.sin(angle)*spd,
+  life:30+Math.random()*20,maxLife:50,color,radius:2+Math.random()*2});
+}}
+
+function spawnFloatText(x,y,text,color){
+G.floatTexts.push({x,y,text,color,life:60,maxLife:60});
+}
+
+// ==================== GAME LOGIC ====================
+function updateEnemies(dt){
+for(const e of G.enemies){
+if(!e.alive)continue;
+// Stealth reveal timer
+if(e.isStealth&&!e.revealed){
+  e.revealTimer-=dt;
+  if(e.revealTimer<=0){e.revealed=true;e.color='#f0883e'}
+  // Check rubber duck proximity
+  for(const t of G.towers){
+    if(t.type==='duck'&&!t.disabled&&dist(t,e)<t.range){e.revealed=true;e.color='#f0883e';break}
   }
 }
-function tickParticles(){
-  pctx.clearRect(0,0,cvs.width,cvs.height);
-  var next=[];
-  for(var i=0;i<particles.length;i++){
-    var p=particles[i];
-    p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.life-=0.02;
-    if(p.life<=0)continue;
-    pctx.globalAlpha=p.life;pctx.fillStyle=p.color;
-    pctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);
-    next.push(p);
-  }
-  particles=next;
-  pctx.globalAlpha=1;
-  requestAnimationFrame(tickParticles);
-}
-tickParticles();
-
-/* ===== GAME STATE ===== */
-var state='start';
-var score=0,combo=0,maxCombo=0,lives=3,round=0;
-var sentenceQueue=[],currentSentence=null;
-var timerStart=0,timerDuration=5000,timerRaf=0,timerExpired=false;
-var totalSlop=0,totalNotSlop=0;
-var correctSlopCount=0,totalSlopShown=0,falsePositives=0,totalNotSlopShown=0;
-var correctCount=0,totalAnswered=0;
-var catShown=false,catRound=0;
-var inputLocked=false;
-
-function el(id){return document.getElementById(id)}
-var scoreEl=el('score'),comboEl=el('combo'),heartsEl=el('hearts');
-var roundEl=el('round-num'),timerBarEl=el('timer-bar');
-var sentenceEl=el('sentence-text');
-var resultOverlay=el('result-overlay'),resultVerdict=el('result-verdict');
-var resultCategory=el('result-category'),resultSlapEl=el('result-slap'),resultQuip=el('result-quip');
-var streakEl=el('streak-announce'),speedEl=el('speed-notify');
-var slopPct=el('slop-pct'),slopFill=el('slop-fill');
-var catEl=el('the-cat');
-
-function showScreen(id){
-  var screens=document.querySelectorAll('.screen');
-  for(var i=0;i<screens.length;i++)screens[i].classList.remove('active');
-  el(id).classList.add('active');
-}
-
-/* ===== HIGH SCORE ===== */
-function getHighScore(){return parseInt(localStorage.getItem('slopgame_high')||'0',10)}
-function setHighScore(s){localStorage.setItem('slopgame_high',String(s))}
-function showStartHighScore(){
-  var hs=getHighScore();
-  el('start-high-score').textContent=hs>0?'High Score: '+hs:'';
-}
-
-/* ===== SHUFFLE ===== */
-function shuffle(arr){
-  for(var i=arr.length-1;i>0;i--){
-    var j=Math.floor(Math.random()*(i+1));
-    var tmp=arr[i];arr[i]=arr[j];arr[j]=tmp;
-  }
-  return arr;
-}
-
-function buildQueue(){
-  var d1=shuffle(SENTENCES.filter(function(s){return s.difficulty===1}));
-  var d2=shuffle(SENTENCES.filter(function(s){return s.difficulty===2}));
-  var d3=shuffle(SENTENCES.filter(function(s){return s.difficulty===3}));
-  sentenceQueue=d1.concat(d2).concat(d3);
-}
-
-/* ===== TIMER ===== */
-function getTimerDuration(){
-  if(round<10)return 5000;
-  if(round<20)return 4000;
-  if(round<30)return 3000;
-  return 2500;
-}
-
-function startTimer(){
-  timerDuration=getTimerDuration();
-  timerStart=performance.now();
-  timerExpired=false;
-  timerBarEl.style.width='100%';
-  timerBarEl.className='timer-bar';
-  function tick(){
-    if(state!=='playing'||timerExpired)return;
-    var elapsed=performance.now()-timerStart;
-    var pct=Math.max(0,1-elapsed/timerDuration);
-    timerBarEl.style.width=(pct*100)+'%';
-    if(pct<0.25)timerBarEl.className='timer-bar danger';
-    else if(pct<0.5)timerBarEl.className='timer-bar warning';
-    else timerBarEl.className='timer-bar';
-    if(pct<=0){timerExpired=true;handleAnswer(null);return}
-    timerRaf=requestAnimationFrame(tick);
-  }
-  timerRaf=requestAnimationFrame(tick);
-}
-function stopTimer(){timerExpired=true;cancelAnimationFrame(timerRaf)}
-
-/* ===== HEARTS ===== */
-function renderHearts(){
-  var s='';
-  for(var i=0;i<lives;i++)s+='\u2764\uFE0F';
-  for(var j=lives;j<3;j++)s+='\uD83D\uDDA4';
-  heartsEl.textContent=s;
-  if(lives===1)heartsEl.classList.add('danger');
-  else heartsEl.classList.remove('danger');
-}
-
-/* ===== SLOP-O-METER ===== */
-function updateSlopMeter(){
-  var total=totalSlop+totalNotSlop;
-  if(total===0){slopPct.textContent='0%';slopFill.style.height='0%';return}
-  var pct=Math.round((totalSlop/total)*100);
-  slopPct.textContent=pct+'%';
-  slopFill.style.height=pct+'%';
-}
-
-/* ===== SHOW SENTENCE ===== */
-function showNextSentence(){
-  if(sentenceQueue.length===0){endGame();return}
-  inputLocked=false;
-  state='playing';
-  round++;
-  currentSentence=sentenceQueue.shift();
-  sentenceEl.textContent=currentSentence.text;
-  sentenceEl.className='sentence-text';
-  void sentenceEl.offsetWidth;
-  sentenceEl.classList.add('visible');
-  roundEl.textContent='Round '+round;
-  resultOverlay.classList.remove('show');
-
-  if(round>1&&round%10===1)showSpeedNotify();
-  if(!catShown&&round===catRound){showCat();catShown=true}
-
-  startTimer();
-}
-
-/* ===== HANDLE ANSWER ===== */
-function handleAnswer(playerSaysSlop){
-  if(state!=='playing'||inputLocked)return;
-  inputLocked=true;
-  stopTimer();
-  state='result';
-
-  var s=currentSentence;
-  var timeout=(playerSaysSlop===null);
-  var correct=!timeout&&(playerSaysSlop===s.isSlop);
-
-  totalAnswered++;
-  if(s.isSlop){
-    totalSlopShown++;totalSlop++;
-    if(correct)correctSlopCount++;
+// Slow
+if(e.slowed){e.slowTimer-=dt;if(e.slowTimer<=0)e.slowed=false}
+// Movement
+const spd=BASE_SPEED*e.speed*(e.slowed?.5:1)*(e.desperation?1.5:1)*dt/16.67;
+if(e.wpIndex>=WAYPOINTS.length-1){
+  // Reached castle
+  if(e.isGood){
+    G.castleHP=Math.min(100,G.castleHP+2);
+    G.gold+=5;G.stats.goodSaved++;G.stats.goldEarned+=5;
+    spawnFloatText(e.x,e.y-10,'+5 +2%','#56d4dd');
+    playSound('goodword');
   }else{
-    totalNotSlopShown++;totalNotSlop++;
-    if(!correct&&!timeout&&playerSaysSlop===true)falsePositives++;
+    G.castleHP-=3;
+    G.castleSlopWords.push({word:e.word,x:Math.random()*60-30,y:Math.random()*40-20,rot:Math.random()*.6-.3});
+    spawnFloatText(e.x,e.y-10,'-3%','#f85149');
+    playSound('slophit');
   }
-  if(correct)correctCount++;
-  updateSlopMeter();
+  e.alive=false;continue;
+}
+const wp=WAYPOINTS[e.wpIndex+1];
+const segDist=dist(WAYPOINTS[e.wpIndex],wp);
+e.wpT+=spd/segDist;
+if(e.wpT>=1){e.wpT=0;e.wpIndex++;if(e.wpIndex>=WAYPOINTS.length-1){e.wpT=1}}
+const pos=posOnPath(e.wpIndex,e.wpT);
+e.x=pos.x;e.y=pos.y;
+// Boss desperation
+if(e.isBoss&&!e.desperation&&e.hp<=e.maxHP*0.25){
+  e.desperation=true;
+  for(let i=0;i<2;i++){const m=makeEnemy('buzz',G.endless?1+G.endlessWave*0.15:1);m.wpIndex=e.wpIndex;m.wpT=e.wpT;m.x=e.x;m.y=e.y;G.enemies.push(m)}
+}
+if(e.isBoss&&!e.spawned&&e.hp<=e.maxHP*0.5){
+  e.spawned=true;
+  for(let i=0;i<3;i++){const m=makeEnemy('buzz',G.endless?1+G.endlessWave*0.15:1);m.wpIndex=e.wpIndex;m.wpT=e.wpT;m.x=e.x;m.y=e.y;G.enemies.push(m)}
+}
+// Bomb pulse
+if(e.isBomb)e.pulsePhase=(e.pulsePhase||0)+dt*0.15;
+}}
 
-  if(correct){
-    score+=10*(1+Math.floor(combo/3));
-    combo++;
-    if(combo>maxCombo)maxCombo=combo;
-    scoreEl.textContent=score;
-    playCorrect();
-    document.body.classList.add('flash-correct');
-    setTimeout(function(){document.body.classList.remove('flash-correct')},300);
-    spawnParticles(window.innerWidth/2,window.innerHeight/2,'#3fb950',25);
-
-    if(combo>1){
-      var bangs='';for(var b=0;b<Math.min(Math.floor(combo/5),3);b++)bangs+='!';
-      comboEl.textContent='x'+combo+bangs;
-      comboEl.style.transform='scale(1.3)';
-      setTimeout(function(){comboEl.style.transform='scale(1)'},150);
+function updateTowers(dt){
+for(const t of G.towers){
+if(t.disabled){t.disableTimer-=dt;if(t.disableTimer<=0)t.disabled=false;continue}
+// Coffee machine boost calc
+let boostMult=1;
+for(const c of G.towers){
+  if(c.type==='coffee'&&!c.disabled&&c!==t&&dist(c,t)<c.range)
+    boostMult+=c.level>1?0.75:0.5;
+}
+// Coffee machine special
+if(t.type==='coffee'){
+  t.coffeeTimer-=dt*boostMult;
+  if(t.coffeeTimer<=0){
+    t.coffeeTimer=(t.level>1?720:1200);
+    // Spawn coffee on random path point
+    const wp=Math.floor(Math.random()*(WAYPOINTS.length-1));
+    const tt=Math.random();
+    const pos=posOnPath(wp,tt);
+    G.coffeePickups.push({x:pos.x,y:pos.y,life:600,radius:8});
+  }
+  continue;
+}
+// Troll hot take
+if(t.type==='troll'){
+  t.hotTakeTimer-=dt;
+  const interval=t.level>1?900:1800;
+  if(t.hotTakeTimer<=0){
+    t.hotTakeTimer=interval;
+    playSound('hottake');
+    for(const e of G.enemies){
+      if(e.alive&&!e.isGood){e.hp-=10;if(e.hp<=0)killEnemy(e,t)}
     }
+    spawnFloatText(t.x,t.y-20,'HOT TAKE!','#f0883e');
+    // Screen flash effect
+    G.hotTakeFlash=10;
+  }
+}
+// Targeting
+if(t.rate===0)continue;
+t.cooldown-=dt*boostMult;
+if(t.cooldown>0)continue;
+// Find target
+let target=null,bestProg=-1;
+for(const e of G.enemies){
+  if(!e.alive)continue;
+  if(e.isGood)continue;
+  if(e.isStealth&&!e.revealed)continue;
+  if(dist(t,e)>t.range)continue;
+  const prog=getPathProgress(e);
+  if(prog>bestProg){bestProg=prog;target=e}
+}
+if(!target)continue;
+t.cooldown=1000/t.rate;
+const p=fireProjectile(t,target);
+G.projectiles.push(p);
+if(t.type==='dog')playSound('bark');
+else playSound('shoot');
+}}
 
-    if(STREAK_MSGS[combo]){
-      showStreak(STREAK_MSGS[combo]);
-      playCombo();
+function updateProjectiles(dt){
+for(const p of G.projectiles){
+if(!p.alive)continue;
+// Trebuchet arc
+if(p.towerType==='trebuchet'){
+  p.arcProgress+=dt*0.02;
+  if(p.arcProgress>=1){
+    p.alive=false;
+    // AOE damage
+    const aoeR=p.isUpgraded?40:30;
+    for(const e of G.enemies){
+      if(!e.alive)continue;
+      if(dist({x:p.targetX,y:p.targetY},e)<=aoeR){
+        if(e.isGood&&p.friendlyFire){
+          e.hp-=p.dmg;if(e.hp<=0)killGoodWord(e);
+        }else if(!e.isGood){
+          e.hp-=p.dmg;if(e.hp<=0)killEnemy(e,null);
+        }
+      }
     }
-
-    resultVerdict.textContent='CORRECT';
-    resultVerdict.className='result-verdict correct';
+    spawnParticles(p.targetX,p.targetY,p.isCow?'#8B4513':'#888',12);
+    playSound(p.isCow?'moo':'bomb');
   }else{
-    combo=0;
-    comboEl.textContent='';
-    lives--;
-    renderHearts();
-    playWrong();
-    document.body.classList.add('shake');
-    document.body.classList.add('flash-wrong');
-    setTimeout(function(){document.body.classList.remove('shake');document.body.classList.remove('flash-wrong')},300);
-
-    resultVerdict.textContent=timeout?'TOO SLOW':'WRONG';
-    resultVerdict.className='result-verdict wrong';
+    const t2=p.arcProgress;
+    p.x=lerp(p.startX,p.targetX,t2);
+    p.y=lerp(p.startY,p.targetY,t2)-Math.sin(t2*Math.PI)*80;
   }
-
-  var wasLabel=s.isSlop?'SLOP':'NOT SLOP';
-  resultCategory.textContent=wasLabel+' \u2014 '+s.category;
-
-  if(correct&&s.isSlop){
-    var slapScore=70+Math.floor(Math.random()*30);
-    resultSlapEl.textContent='S.L.A.P. Score: '+slapScore+'/100 \u2014 '+SLAP_COMMENTS[Math.floor(Math.random()*SLAP_COMMENTS.length)];
-    resultSlapEl.style.display='block';
+  continue;
+}
+// Homing or straight
+if(p.target&&p.target.alive){
+  const dx=p.target.x-p.x,dy=p.target.y-p.y;
+  const d=Math.hypot(dx,dy);
+  if(d<8){
+    // Hit
+    p.target.hp-=p.dmg;
+    if(p.target.hp<=0){
+      if(p.target.isGood)killGoodWord(p.target);
+      else killEnemy(p.target,null);
+    }
+    // Bounce (duck)
+    if(p.bouncesLeft>0&&!p.target.isGood){
+      p.bouncesLeft--;
+      let nearest=null,nd=Infinity;
+      for(const e of G.enemies){
+        if(!e.alive||e===p.target||e.isGood)continue;
+        if(e.isStealth&&!e.revealed)continue;
+        const dd=dist(p,e);if(dd<nd&&dd<120){nd=dd;nearest=e}
+      }
+      if(nearest){p.target=nearest}else{p.alive=false}
+    }else{
+      p.alive=false;
+      // Troll upgraded explosion
+      if(p.towerType==='troll'&&p.isUpgraded){
+        for(const e of G.enemies){
+          if(!e.alive||e.isGood)continue;
+          if(dist(p,e)<30){e.hp-=10;if(e.hp<=0)killEnemy(e,null)}
+        }
+        spawnParticles(p.x,p.y,'#f0883e',6);
+      }
+    }
+    spawnParticles(p.x,p.y,'#fff',3);
   }else{
-    resultSlapEl.style.display='none';
+    p.x+=dx/d*p.speed*dt/16.67*1.5;
+    p.y+=dy/d*p.speed*dt/16.67*1.5;
   }
-
-  var quipList;
-  if(timeout){
-    quipList=s.isSlop?QUIPS.missedSlop:QUIPS.wronglyCalledSlop;
-  }else if(correct&&s.isSlop)quipList=QUIPS.correctSlop;
-  else if(correct&&!s.isSlop)quipList=QUIPS.correctNotSlop;
-  else if(!correct&&s.isSlop)quipList=QUIPS.missedSlop;
-  else quipList=QUIPS.wronglyCalledSlop;
-  resultQuip.textContent=quipList[Math.floor(Math.random()*quipList.length)];
-
-  resultOverlay.classList.add('show');
-  sentenceEl.classList.remove('visible');
-  sentenceEl.classList.add('exit');
-
-  if(lives<=0){
-    setTimeout(endGame,1500);
-  }else{
-    setTimeout(showNextSentence,1800);
+}else if(p.vx!==undefined){
+  // Straight line (random troll)
+  p.x+=p.vx*dt/16.67;p.y+=p.vy*dt/16.67;
+  // Check hits
+  for(const e of G.enemies){
+    if(!e.alive)continue;
+    if(dist(p,e)<12){
+      if(e.isGood){e.hp-=p.dmg;if(e.hp<=0)killGoodWord(e)}
+      else{e.hp-=p.dmg;if(e.hp<=0)killEnemy(e,null)}
+      p.alive=false;spawnParticles(p.x,p.y,'#fff',3);break;
+    }
   }
+  if(p.x<-20||p.x>CW+20||p.y<-20||p.y>CH+20)p.alive=false;
+}else{
+  p.alive=false;
 }
+}}
 
-/* ===== STREAK ===== */
-function showStreak(msg){
-  streakEl.textContent=msg;
-  streakEl.style.opacity='1';
-  streakEl.style.transform='translate(-50%,-50%) scale(1.2)';
-  streakEl.style.transition='opacity .8s, transform .3s';
-  setTimeout(function(){streakEl.style.transform='translate(-50%,-50%) scale(1)'},100);
-  setTimeout(function(){streakEl.style.opacity='0'},1200);
+function killEnemy(e,tower){
+if(!e.alive)return;
+e.alive=false;G.gold+=e.value;G.score+=e.value*10;G.stats.killed++;G.stats.goldEarned+=e.value;
+if(tower){tower.kills++;G.stats.towerKills[tower.type]=(G.stats.towerKills[tower.type]||0)+1}
+spawnParticles(e.x,e.y,e.color,8);
+spawnFloatText(e.x,e.y-15,'+'+e.value,'#f0883e');
+if(e.isBoss)playSound('bossdeath');else playSound('pop');
+// Dog fetch bonus
+if(tower&&tower.type==='dog'&&Math.random()<0.15){
+  G.gold+=5;G.stats.goldEarned+=5;
+  spawnFloatText(e.x,e.y-30,'FETCH! +5','#e3b341');
 }
-
-/* ===== SPEED NOTIFY ===== */
-function showSpeedNotify(){
-  playSpeed();
-  speedEl.style.opacity='1';
-  speedEl.style.transition='opacity .6s';
-  setTimeout(function(){speedEl.style.opacity='0'},1000);
-}
-
-/* ===== THE CAT ===== */
-function showCat(){
-  catEl.style.left='-40px';
-  catEl.style.opacity='1';
-  catEl.style.transition='left 6s linear, opacity 0.5s';
-  setTimeout(function(){catEl.style.left=(window.innerWidth+40)+'px'},50);
-  setTimeout(function(){catEl.style.opacity='0'},5500);
-}
-
-/* ===== GAME OVER ===== */
-function endGame(){
-  state='gameover';
-  stopTimer();
-
-  var detectionRate=totalSlopShown>0?Math.round((correctSlopCount/totalSlopShown)*100):0;
-  var fpRate=totalNotSlopShown>0?Math.round((falsePositives/totalNotSlopShown)*100):0;
-  var accuracy=totalAnswered>0?Math.round((correctCount/totalAnswered)*100):0;
-
-  var grade,gradeClass;
-  if(accuracy>=95){grade='S';gradeClass='s-tier'}
-  else if(accuracy>=85){grade='A';gradeClass='a-tier'}
-  else if(accuracy>=70){grade='B';gradeClass='b-tier'}
-  else if(accuracy>=55){grade='C';gradeClass='c-tier'}
-  else if(accuracy>=40){grade='D';gradeClass='d-tier'}
-  else{grade='F';gradeClass='f-tier'}
-
-  el('go-grade').textContent=grade;
-  el('go-grade').className='go-grade '+gradeClass;
-  el('go-score').textContent=score;
-  el('go-combo').textContent='x'+maxCombo;
-  el('go-detect').textContent=detectionRate+'%';
-  el('go-false').textContent=fpRate+'%';
-  el('go-reviewed').textContent=totalAnswered;
-  el('go-accuracy').textContent=accuracy+'%';
-  el('go-comment').textContent=REVIEW_COMMENTS[grade];
-
-  var hs=getHighScore();
-  if(score>hs){
-    setHighScore(score);
-    el('go-new-high').style.display='block';
-  }else{
-    el('go-new-high').style.display='none';
+// Slop bomb explosion
+if(e.isBomb){
+  playSound('bomb');
+  spawnParticles(e.x,e.y,'#f85149',15);
+  for(const t of G.towers){
+    if(dist(t,e)<60){t.disabled=true;t.disableTimer=180}
   }
-
-  showScreen('gameover-screen');
+  spawnFloatText(e.x,e.y-25,'BOOM!','#f85149');
+}
 }
 
-/* ===== START GAME ===== */
-function startGame(){
-  score=0;combo=0;maxCombo=0;lives=3;round=0;
-  totalSlop=0;totalNotSlop=0;
-  correctSlopCount=0;totalSlopShown=0;falsePositives=0;totalNotSlopShown=0;
-  correctCount=0;totalAnswered=0;
-  catShown=false;catRound=5+Math.floor(Math.random()*20);
-  inputLocked=false;
-  scoreEl.textContent='0';comboEl.textContent='';
-  renderHearts();updateSlopMeter();
-  buildQueue();
-  showScreen('game-screen');
-  ensureAudio();
-  setTimeout(showNextSentence,400);
+function killGoodWord(e){
+if(!e.alive||!e.isGood)return;
+e.alive=false;G.gold-=10;G.castleHP-=3;G.stats.goodLost++;
+spawnParticles(e.x,e.y,'#56d4dd',8);
+spawnFloatText(e.x,e.y-15,'FRIENDLY FIRE! -10','\u{1F534}');
+playSound('slophit');
 }
 
-/* ===== INPUT ===== */
-document.addEventListener('keydown',function(e){
-  if(e.repeat)return;
-  var key=e.key.toLowerCase();
-  if(state==='start'&&(key===' '||key==='Enter')){
-    e.preventDefault();startGame();
-  }else if(state==='playing'){
-    if(key==='s'){e.preventDefault();handleAnswer(true)}
-    else if(key==='n'){e.preventDefault();handleAnswer(false)}
-  }else if(state==='gameover'&&(key===' '||key==='Enter')){
-    e.preventDefault();startGame();
+function updateParticles(dt){
+G.particles=G.particles.filter(p=>{p.x+=p.vx*dt/16.67;p.y+=p.vy*dt/16.67;p.life-=dt/16.67;return p.life>0});
+G.floatTexts=G.floatTexts.filter(f=>{f.y-=0.8*dt/16.67;f.life-=dt/16.67;return f.life>0});
+}
+
+function updateCoffeePickups(dt){
+G.coffeePickups=G.coffeePickups.filter(c=>{
+  c.life-=dt/16.67;
+  if(c.life<=0)return false;
+  for(const e of G.enemies){
+    if(!e.alive)continue;
+    if(dist(c,e)<15){
+      // Slow all enemies for 3 seconds
+      for(const e2 of G.enemies){if(e2.alive){e2.slowed=true;e2.slowTimer=180}}
+      spawnFloatText(c.x,c.y-10,'COFFEE!','#8B4513');
+      return false;
+    }
   }
+  return true;
 });
+}
 
-el('btn-again').addEventListener('click',startGame);
-el('btn-share').addEventListener('click',function(){
-  var detectionRate=totalSlopShown>0?Math.round((correctSlopCount/totalSlopShown)*100):0;
-  var accuracy=totalAnswered>0?Math.round((correctCount/totalAnswered)*100):0;
-  var grade;
-  if(accuracy>=95)grade='S';else if(accuracy>=85)grade='A';else if(accuracy>=70)grade='B';
-  else if(accuracy>=55)grade='C';else if(accuracy>=40)grade='D';else grade='F';
-  var text='SLOP or NOT -- Content Quality Review\nGrade: '+grade+' | Score: '+score+' | Combo: x'+maxCombo+'\nSlop Detection: '+detectionRate+'% | Accuracy: '+accuracy+'%\nCan you tell AI garbage from real writing?';
-  navigator.clipboard.writeText(text).then(function(){
-    el('btn-share').textContent='COPIED!';
-    setTimeout(function(){el('btn-share').textContent='SHARE SCORE'},1500);
+function updateWave(dt){
+if(G.betweenWaves){
+  G.countdown-=dt/1000;
+  if(G.countdown<=0){startWave();G.betweenWaves=false}
+  return;
+}
+if(!G.waveActive)return;
+// Spawn from queue
+if(G.spawnQueue.length>0){
+  G.spawnTimer-=dt;
+  if(G.spawnTimer<=0){
+    const e=G.spawnQueue.shift();
+    G.enemies.push(e);
+    if(e.isBoss)playSound('bossspawn');
+    G.spawnTimer=G.currentInterval;
+  }
+}
+// Check wave complete
+if(G.spawnQueue.length===0&&G.enemies.filter(e=>e.alive).length===0){
+  G.waveActive=false;
+  playSound('waveclear');
+  if(G.wave>=MAX_WAVE&&!G.endless){
+    G.state='victory';showEndScreen(true);
+  }else{
+    G.betweenWaves=true;G.countdown=WAVE_DELAY;
+  }
+}
+}
+
+function startWave(){
+G.wave++;
+let waveDef,hpMult=1;
+if(G.wave<=MAX_WAVE){
+  waveDef=WAVES[G.wave];
+}else{
+  G.endlessWave=G.wave-MAX_WAVE;
+  hpMult=1+G.endlessWave*0.2;
+  // Generate random wave
+  const types=['buzz','buzz','buzz','corp','thought','stealth','bomb'];
+  const n=10+G.endlessWave*3;
+  const enemies=[{t:'good',n:Math.min(3+Math.floor(G.endlessWave/2),10)}];
+  if(G.endlessWave%5===0)enemies.push({t:'boss',n:1+Math.floor(G.endlessWave/5)});
+  for(let i=0;i<n;i++)enemies.push({t:rnd(types),n:1});
+  waveDef={enemies,interval:Math.max(300,800-G.endlessWave*20)};
+}
+G.spawnQueue=buildSpawnQueue(waveDef,hpMult);
+G.spawnTimer=0;
+G.currentInterval=waveDef.interval;
+G.waveActive=true;
+playSound('wavestart');
+}
+
+function skipToNextWave(){
+if(G.betweenWaves){
+  G.gold+=15;G.stats.goldEarned+=15;
+  spawnFloatText(CW/2,CH/2,'+15 BONUS!','#e3b341');
+  G.betweenWaves=false;
+  startWave();
+}
+}
+
+// ==================== RENDERING ====================
+function render(){
+ctx.clearRect(0,0,CW,CH);
+// Background
+ctx.fillStyle='#0d1117';ctx.fillRect(0,0,CW,CH);
+// Path
+drawPath();
+// Grid overlay when placing
+if(G.selectedType)drawGrid();
+// Coffee pickups
+for(const c of G.coffeePickups){
+  ctx.fillStyle='#8B451380';ctx.beginPath();ctx.arc(c.x,c.y,c.radius,0,Math.PI*2);ctx.fill();
+  ctx.font='12px sans-serif';ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText('\u2615',c.x,c.y+4);
+}
+// Towers
+for(const t of G.towers)drawTower(t);
+// Range indicator for selected/hovered tower
+if(G.selectedTower&&G.state==='playing'){
+  ctx.strokeStyle='#1f6feb40';ctx.lineWidth=1;ctx.beginPath();
+  ctx.arc(G.selectedTower.x,G.selectedTower.y,G.selectedTower.range,0,Math.PI*2);ctx.stroke();
+}
+// Placement preview
+if(G.selectedType&&G.mouseGX>=0){
+  const def=TOWER_DEFS[G.selectedType];
+  const valid=isValidPlacement(G.mouseGX,G.mouseGY)&&!G.towers.some(t=>t.gx===G.mouseGX&&t.gy===G.mouseGY)&&G.gold>=def.cost;
+  const c=cellCenter(G.mouseGX,G.mouseGY);
+  ctx.strokeStyle=valid?'#238636':'#f85149';ctx.lineWidth=2;
+  ctx.strokeRect(G.mouseGX*CS,G.mouseGY*CS,CS,CS);
+  if(valid){
+    ctx.strokeStyle='#23863640';ctx.lineWidth=1;ctx.beginPath();
+    ctx.arc(c.x,c.y,def.range,0,Math.PI*2);ctx.stroke();
+  }
+}
+// Enemies (sorted by progress for layering)
+const sortedEnemies=[...G.enemies].filter(e=>e.alive).sort((a,b)=>getPathProgress(a)-getPathProgress(b));
+for(const e of sortedEnemies)drawEnemy(e);
+// Projectiles
+for(const p of G.projectiles)if(p.alive)drawProjectile(p);
+// Particles
+for(const p of G.particles){
+  const a=p.life/p.maxLife;
+  ctx.globalAlpha=a;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.radius*a,0,Math.PI*2);ctx.fill();
+}
+ctx.globalAlpha=1;
+// Float texts
+for(const f of G.floatTexts){
+  const a=f.life/f.maxLife;
+  ctx.globalAlpha=a;ctx.fillStyle=f.color;ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+  ctx.fillText(f.text,f.x,f.y);
+}
+ctx.globalAlpha=1;
+// Castle
+drawCastle();
+// AI source
+drawSource();
+// Hot take flash
+if(G.hotTakeFlash>0){
+  ctx.globalAlpha=G.hotTakeFlash/20;ctx.fillStyle='#f0883e';ctx.fillRect(0,0,CW,CH);
+  ctx.globalAlpha=1;G.hotTakeFlash-=1;
+}
+}
+
+function drawPath(){
+ctx.lineWidth=CS;ctx.strokeStyle='#21262d';ctx.lineCap='round';ctx.lineJoin='round';
+ctx.beginPath();ctx.moveTo(WAYPOINTS[0].x,WAYPOINTS[0].y);
+for(let i=1;i<WAYPOINTS.length;i++)ctx.lineTo(WAYPOINTS[i].x,WAYPOINTS[i].y);
+ctx.stroke();
+// Border
+ctx.lineWidth=CS+4;ctx.strokeStyle='#30363d20';
+ctx.beginPath();ctx.moveTo(WAYPOINTS[0].x,WAYPOINTS[0].y);
+for(let i=1;i<WAYPOINTS.length;i++)ctx.lineTo(WAYPOINTS[i].x,WAYPOINTS[i].y);
+ctx.stroke();
+// Re-draw main path on top
+ctx.lineWidth=CS-2;ctx.strokeStyle='#21262d';
+ctx.beginPath();ctx.moveTo(WAYPOINTS[0].x,WAYPOINTS[0].y);
+for(let i=1;i<WAYPOINTS.length;i++)ctx.lineTo(WAYPOINTS[i].x,WAYPOINTS[i].y);
+ctx.stroke();
+}
+
+function drawGrid(){
+ctx.strokeStyle='#30363d30';ctx.lineWidth=0.5;
+for(let x=0;x<=CW;x+=CS){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,CH);ctx.stroke()}
+for(let y=0;y<=CH;y+=CS){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke()}
+// Highlight valid cells
+for(let gx=0;gx<COLS;gx++)for(let gy=0;gy<ROWS;gy++){
+  if(isValidPlacement(gx,gy)&&!G.towers.some(t=>t.gx===gx&&t.gy===gy)){
+    ctx.fillStyle='#238636'+(G.gold>=TOWER_DEFS[G.selectedType].cost?'18':'08');
+    ctx.fillRect(gx*CS,gy*CS,CS,CS);
+  }
+}
+}
+
+function drawTower(t){
+const def=TOWER_DEFS[t.type];
+// Base square
+ctx.fillStyle=t.disabled?'#484f58':'#161b22';
+ctx.fillRect(t.x-CS/2+2,t.y-CS/2+2,CS-4,CS-4);
+ctx.strokeStyle=t.disabled?'#484f58':'#30363d';ctx.lineWidth=1;
+ctx.strokeRect(t.x-CS/2+2,t.y-CS/2+2,CS-4,CS-4);
+// Emoji
+ctx.font=t.disabled?'16px sans-serif':'20px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+if(t.disabled){ctx.globalAlpha=0.4}
+ctx.fillText(def.emoji,t.x,t.y);
+if(t.disabled){ctx.globalAlpha=1}
+// Level indicator
+if(t.level>1){
+  ctx.fillStyle='#e3b341';ctx.font='bold 9px sans-serif';ctx.textAlign='center';
+  ctx.fillText('\u2605',t.x+12,t.y-12);
+}
+// Coffee steam
+if(t.type==='coffee'&&!t.disabled){
+  const time=Date.now()/300;
+  for(let i=0;i<3;i++){
+    const ox=Math.sin(time+i*2)*4;
+    const oy=-8-i*6-Math.sin(time*1.5+i)*3;
+    ctx.globalAlpha=0.3-i*0.08;ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(t.x+ox,t.y+oy,2,0,Math.PI*2);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  // Range circle
+  ctx.strokeStyle='#8B451320';ctx.lineWidth=1;ctx.beginPath();
+  ctx.arc(t.x,t.y,t.range,0,Math.PI*2);ctx.stroke();
+}
+}
+
+function drawEnemy(e){
+// Stealth: hidden unless revealed
+if(e.isStealth&&!e.revealed){
+  // Draw faintly for player hint
+  ctx.globalAlpha=0.15;
+}
+// Circle
+ctx.beginPath();ctx.arc(e.x,e.y,e.radius,0,Math.PI*2);
+if(e.isBomb){
+  const pulse=Math.sin((e.pulsePhase||0))*0.3+0.7;
+  ctx.fillStyle=e.color;ctx.globalAlpha=(ctx.globalAlpha||1)*pulse;
+}else{
+  ctx.fillStyle=e.color;
+}
+ctx.fill();
+// Good word glow
+if(e.isGood){
+  ctx.strokeStyle='#3fb950';ctx.lineWidth=2;ctx.stroke();
+  ctx.shadowColor='#56d4dd';ctx.shadowBlur=8;
+  ctx.beginPath();ctx.arc(e.x,e.y,e.radius,0,Math.PI*2);ctx.stroke();
+  ctx.shadowBlur=0;
+}
+// HP bar (not for good words)
+if(!e.isGood&&e.hp<e.maxHP){
+  const barW=e.radius*2,barH=3;
+  const bx=e.x-barW/2,by=e.y-e.radius-6;
+  ctx.fillStyle='#21262d';ctx.fillRect(bx,by,barW,barH);
+  const pct=e.hp/e.maxHP;
+  ctx.fillStyle=pct>0.5?'#3fb950':pct>0.25?'#d29922':'#f85149';
+  ctx.fillRect(bx,by,barW*pct,barH);
+}
+// Word text
+ctx.fillStyle=e.isGood?'#0d1117':'#fff';
+ctx.font=(e.isBoss?'bold 8':'7')+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+const displayWord=e.word.length>12?e.word.substring(0,11)+'..':e.word;
+ctx.fillText(displayWord,e.x,e.y);
+ctx.globalAlpha=1;
+}
+
+function drawProjectile(p){
+if(p.towerType==='trebuchet'){
+  ctx.font='14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(p.isCow?'\u{1F404}':p.isUpgraded?'\u{1F525}':'\u25CF',p.x,p.y);
+  return;
+}
+if(p.type==='woof'){
+  ctx.fillStyle='#e3b341';ctx.font='bold 8px sans-serif';ctx.textAlign='center';
+  ctx.fillText('WOOF',p.x,p.y);
+}else if(p.type==='text'){
+  ctx.fillStyle='#c9d1d9';ctx.font='7px sans-serif';ctx.textAlign='center';
+  ctx.fillText(p.text,p.x,p.y);
+}else if(p.type==='duck'){
+  ctx.font='10px sans-serif';ctx.textAlign='center';
+  ctx.fillText('\u{1F986}',p.x,p.y);
+}else if(p.type==='emoji'){
+  ctx.font='12px sans-serif';ctx.textAlign='center';
+  ctx.fillText(p.text,p.x,p.y);
+}
+}
+
+function drawCastle(){
+const cx=WAYPOINTS[WAYPOINTS.length-1].x,cy=WAYPOINTS[WAYPOINTS.length-1].y;
+const hp=G.castleHP;
+// Castle body
+ctx.save();
+if(hp<50)ctx.translate(Math.random()*(50-hp)/25,0);
+if(hp<25){ctx.translate(cx,cy);ctx.rotate(Math.sin(Date.now()/500)*0.03);ctx.translate(-cx,-cy)}
+// Main structure
+ctx.fillStyle=hp>50?'#2d333b':hp>25?'#3d2b1b':'#4a1a1a';
+ctx.fillRect(cx-22,cy-25,44,35);
+// Towers
+ctx.fillRect(cx-26,cy-32,12,15);
+ctx.fillRect(cx+14,cy-32,12,15);
+// Battlements
+for(let i=0;i<5;i++)ctx.fillRect(cx-24+i*10,cy-37,6,6);
+// Door
+ctx.fillStyle='#161b22';
+ctx.fillRect(cx-6,cy-2,12,15);
+// Cracks at low HP
+if(hp<50){
+  ctx.strokeStyle='#0d1117';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cx-10,cy-15);ctx.lineTo(cx-5,cy-5);ctx.lineTo(cx-12,cy+2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+8,cy-20);ctx.lineTo(cx+12,cy-8);ctx.stroke();
+}
+// Fire at very low HP
+if(hp<25){
+  const t=Date.now()/100;
+  for(let i=0;i<3;i++){
+    const fx=cx-10+i*10+Math.sin(t+i)*3;
+    const fy=cy-30-Math.abs(Math.sin(t*1.5+i*2))*8;
+    ctx.fillStyle=i%2?'#f0883e':'#f85149';
+    ctx.beginPath();ctx.arc(fx,fy,3+Math.sin(t+i)*2,0,Math.PI*2);ctx.fill();
+  }
+}
+ctx.restore();
+// Slop words on castle
+ctx.font='6px sans-serif';ctx.fillStyle='#f0883e80';ctx.textAlign='center';
+for(const s of G.castleSlopWords.slice(-15)){
+  ctx.save();ctx.translate(cx+s.x,cy+s.y);ctx.rotate(s.rot);
+  ctx.fillText(s.word,0,0);ctx.restore();
+}
+// HP bar
+const barW=50,barH=5,bx=cx-barW/2,by=cy+18;
+ctx.fillStyle='#21262d';ctx.fillRect(bx,by,barW,barH);
+ctx.fillStyle=hp>50?'#3fb950':hp>25?'#d29922':'#f85149';
+ctx.fillRect(bx,by,barW*(hp/100),barH);
+ctx.strokeStyle='#30363d';ctx.lineWidth=0.5;ctx.strokeRect(bx,by,barW,barH);
+// Label
+ctx.fillStyle='#8b949e';ctx.font='8px sans-serif';ctx.textAlign='center';
+ctx.fillText('CASTLE',cx,cy+30);
+}
+
+function drawSource(){
+const sx=WAYPOINTS[0].x,sy=WAYPOINTS[0].y;
+const pulse=Math.sin(Date.now()/400)*0.3+0.7;
+ctx.fillStyle=`rgba(240,136,62,${pulse*0.3})`;
+ctx.beginPath();ctx.arc(sx,sy,18,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#f0883e';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+ctx.fillText('AI',sx,sy);
+}
+
+// ==================== UI ====================
+function updateUI(){
+const waveText=G.endless?`${G.wave}`:`${G.wave}/${MAX_WAVE}`;
+document.getElementById('b-wave').textContent=waveText;
+document.getElementById('b-gold').textContent=G.gold;
+const hpEl=document.getElementById('b-health');
+hpEl.textContent=Math.max(0,Math.round(G.castleHP))+'%';
+hpEl.className='bar-value health'+(G.castleHP<=25?' danger':G.castleHP<=50?' warn':'');
+document.getElementById('b-score').textContent=G.score;
+// Timer
+const timerLabel=document.getElementById('b-timer-label');
+const timerVal=document.getElementById('b-timer');
+if(G.betweenWaves){
+  timerLabel.textContent='Next wave';timerVal.textContent=Math.ceil(G.countdown)+'s';
+}else if(G.waveActive){
+  timerLabel.textContent='Enemies';timerVal.textContent=G.spawnQueue.length+G.enemies.filter(e=>e.alive).length;
+}else{timerLabel.textContent='';timerVal.textContent=''}
+// Wave button
+const btn=document.getElementById('wave-btn');
+if(G.betweenWaves){btn.disabled=false;btn.textContent='NEXT WAVE (+15)';}
+else if(!G.waveActive&&G.wave===0){btn.disabled=false;btn.textContent='START WAVE 1';}
+else{btn.disabled=true;btn.textContent='FIGHTING...';}
+// Tower buttons
+document.querySelectorAll('.tower-btn').forEach(b=>{
+  const type=b.dataset.type;
+  const def=TOWER_DEFS[type];
+  b.classList.toggle('disabled',G.gold<def.cost);
+});
+}
+
+function buildSidebar(){
+const sidebar=document.getElementById('sidebar');
+sidebar.innerHTML='<h2>TOWERS</h2>';
+for(const type of TOWER_ORDER){
+  const def=TOWER_DEFS[type];
+  const div=document.createElement('div');
+  div.className='tower-btn';div.dataset.type=type;
+  div.innerHTML=`<span class="tower-emoji">${def.emoji}</span><div class="tower-info"><div class="tower-name">${def.name}</div><div class="tower-cost">${def.cost} gold</div><div class="tower-desc">${def.desc}</div></div>`;
+  div.addEventListener('click',()=>{
+    if(G.state!=='playing')return;
+    if(G.selectedType===type){G.selectedType=null}
+    else{G.selectedType=type;G.selectedTower=null;hideUpgradeMenu()}
+    document.querySelectorAll('.tower-btn').forEach(b=>b.classList.toggle('selected',b.dataset.type===G.selectedType));
   });
+  sidebar.appendChild(div);
+}
+}
+
+function hideUpgradeMenu(){
+document.getElementById('upgrade-menu').style.display='none';
+G.selectedTower=null;
+}
+
+function showUpgradeMenu(tower,screenX,screenY){
+G.selectedTower=tower;G.selectedType=null;
+document.querySelectorAll('.tower-btn').forEach(b=>b.classList.remove('selected'));
+const def=TOWER_DEFS[tower.type];
+const menu=document.getElementById('upgrade-menu');
+document.getElementById('um-title').textContent=def.emoji+' '+(tower.level>1?def.upgrade.name:def.name);
+const info=tower.level>1?'MAX LEVEL':`Kills: ${tower.kills}`;
+document.getElementById('um-info').textContent=info;
+const uBtn=document.getElementById('upgrade-btn');
+if(tower.level>1){
+  uBtn.textContent='MAX LEVEL';uBtn.disabled=true;
+}else{
+  const cost=def.upgrade.cost;
+  uBtn.textContent=`Upgrade: ${def.upgrade.name} (${cost}g)`;
+  uBtn.disabled=G.gold<cost;
+  uBtn.onclick=()=>{
+    if(G.gold<cost)return;
+    G.gold-=cost;tower.level=2;tower.totalCost+=cost;
+    if(def.upgrade.dmg)tower.dmg=def.upgrade.dmg;
+    if(def.upgrade.range)tower.range=def.upgrade.range;
+    if(def.upgrade.bounces)tower.bounces=def.upgrade.bounces;
+    if(tower.type==='coffee'){tower.range=def.upgrade.range||130}
+    playSound('upgrade');
+    showUpgradeMenu(tower,screenX,screenY);
+  };
+}
+const sellVal=Math.floor(tower.totalCost*0.5);
+const sBtn=document.getElementById('sell-btn');
+sBtn.textContent=`Sell (+${sellVal}g)`;
+sBtn.onclick=()=>{
+  G.gold+=sellVal;G.towers=G.towers.filter(t=>t!==tower);
+  playSound('sell');hideUpgradeMenu();
+};
+// Position menu
+const wrap=document.getElementById('canvas-wrap').getBoundingClientRect();
+const canvasRect=canvas.getBoundingClientRect();
+const scaleX=canvasRect.width/CW,scaleY=canvasRect.height/CH;
+let mx=canvasRect.left+tower.x*scaleX-wrap.left+20;
+let my=canvasRect.top+tower.y*scaleY-wrap.top-20;
+if(mx+200>wrap.width)mx-=220;
+if(my+150>wrap.height)my-=100;
+menu.style.left=mx+'px';menu.style.top=my+'px';menu.style.display='block';
+}
+
+// ==================== SCREENS ====================
+function showStartScreen(){
+const s=document.getElementById('screen');
+s.innerHTML=`<h1>SLOP DEFENSE</h1>
+<p class="subtitle">Buzzwords are invading. Your castle is the last bastion of coherent thought.</p>
+<div class="tower-preview">
+<div><span class="emoji">\u{1F415}</span> Dog -- Barks at slop. Good boy.</div>
+<div><span class="emoji">\u{1F913}</span> Well Actually Guy -- Pedantic. Effective.</div>
+<div><span class="emoji">\u{1F986}</span> Rubber Duck -- Reveals hidden slop.</div>
+<div><span class="emoji">\u{1F3F0}</span> Trebuchet -- Medieval. Area damage. Watch for friendly fire.</div>
+<div><span class="emoji">\u2615</span> Coffee -- Makes everything faster.</div>
+<div><span class="emoji">\u{1F4A9}</span> Troll -- Chaos. Pure chaos.</div>
+</div>
+<div class="enemy-preview">
+<span>\u{1F7E0} Buzzwords</span>
+<span>\u{1F7E1} Thought Leaders</span>
+<span>\u{1F534} Slop Bombs</span>
+<span>\u{1F535} Stealth Slop</span>
+<span>\u2B1B Bosses</span>
+<span style="color:#56d4dd">\u{1FA75} Real Words (let these through!)</span>
+</div>
+<button id="start-btn">CLICK TO DEFEND YOUR CASTLE</button>`;
+document.getElementById('start-btn').addEventListener('click',()=>{
+  initAudio();startGame();
+});
+document.getElementById('overlay').classList.remove('hidden');
+}
+
+function showEndScreen(victory){
+const s=document.getElementById('screen');
+if(victory){
+  const hp=Math.round(G.castleHP);
+  const grade=hp>=90?'S':hp>=75?'A':hp>=60?'B':hp>=40?'C':hp>=20?'D':'F';
+  const gradeColor={S:'#3fb950',A:'#56d4dd',B:'#1f6feb',C:'#d29922',D:'#f0883e',F:'#f85149'}[grade];
+  let favTower='none';let maxK=0;
+  for(const[t,k]of Object.entries(G.stats.towerKills))if(k>maxK){maxK=k;favTower=TOWER_DEFS[t]?.emoji+' '+TOWER_DEFS[t]?.name}
+  s.innerHTML=`<h1 style="color:#3fb950">YOUR CASTLE STANDS</h1>
+  <div class="grade" style="color:${gradeColor}">${grade}</div>
+  <div class="stats-grid">
+  <span class="label">Castle health</span><span class="val">${hp}%</span>
+  <span class="label">Slop destroyed</span><span class="val">${G.stats.killed}</span>
+  <span class="label">Good words saved</span><span class="val">${G.stats.goodSaved}</span>
+  <span class="label">Good words lost</span><span class="val">${G.stats.goodLost}</span>
+  <span class="label">Gold earned</span><span class="val">${G.stats.goldEarned}</span>
+  <span class="label">Favorite tower</span><span class="val">${favTower}</span>
+  </div>
+  <button id="restart-btn">DEFEND AGAIN</button>
+  <button id="endless-btn">ENDLESS MODE</button>`;
+  if(G.score>G.highScores.campaign){G.highScores.campaign=G.score;localStorage.setItem('slopDefenseHS',JSON.stringify(G.highScores))}
+}else{
+  s.innerHTML=`<h1 style="color:#f85149">YOUR CASTLE HAS FALLEN</h1>
+  <p class="subtitle">It now exclusively publishes listicles about disrupting the synergy paradigm.</p>
+  <div class="stats-grid">
+  <span class="label">Survived to wave</span><span class="val">${G.wave}</span>
+  <span class="label">Slop destroyed</span><span class="val">${G.stats.killed}</span>
+  <span class="label">Score</span><span class="val">${G.score}</span>
+  </div>
+  <button id="restart-btn">TRY AGAIN</button>`;
+  const key=G.endless?'endless':'campaign';
+  if(G.score>G.highScores[key]){G.highScores[key]=G.score;localStorage.setItem('slopDefenseHS',JSON.stringify(G.highScores))}
+}
+document.getElementById('overlay').classList.remove('hidden');
+document.getElementById('restart-btn').addEventListener('click',()=>{startGame()});
+if(document.getElementById('endless-btn'))
+  document.getElementById('endless-btn').addEventListener('click',()=>{startGame(true)});
+}
+
+function startGame(endless){
+G.state='playing';G.wave=0;G.gold=100;G.score=0;G.castleHP=100;
+G.towers=[];G.enemies=[];G.projectiles=[];G.particles=[];G.floatTexts=[];G.coffeePickups=[];
+G.selectedType=null;G.selectedTower=null;G.castleSlopWords=[];
+G.waveActive=false;G.betweenWaves=true;G.countdown=3;G.spawnQueue=[];
+G.endless=!!endless;G.endlessWave=0;G.hotTakeFlash=0;
+G.stats={killed:0,goodSaved:0,goodLost:0,goldEarned:0,towerKills:{}};
+document.getElementById('overlay').classList.add('hidden');
+hideUpgradeMenu();
+}
+
+// ==================== INPUT ====================
+canvas.addEventListener('mousemove',e=>{
+const rect=canvas.getBoundingClientRect();
+const scaleX=CW/rect.width,scaleY=CH/rect.height;
+G.mouseX=(e.clientX-rect.left)*scaleX;
+G.mouseY=(e.clientY-rect.top)*scaleY;
+G.mouseGX=Math.floor(G.mouseX/CS);
+G.mouseGY=Math.floor(G.mouseY/CS);
 });
 
-/* ===== INIT ===== */
-showStartHighScore();
+canvas.addEventListener('click',e=>{
+if(G.state!=='playing')return;
+initAudio();
+const rect=canvas.getBoundingClientRect();
+const scaleX=CW/rect.width,scaleY=CH/rect.height;
+const mx=(e.clientX-rect.left)*scaleX,my=(e.clientY-rect.top)*scaleY;
+const gx=Math.floor(mx/CS),gy=Math.floor(my/CS);
+
+if(G.selectedType){
+  const def=TOWER_DEFS[G.selectedType];
+  if(G.gold>=def.cost&&isValidPlacement(gx,gy)&&!G.towers.some(t=>t.gx===gx&&t.gy===gy)){
+    G.gold-=def.cost;
+    G.towers.push(placeTower(G.selectedType,gx,gy));
+    playSound('place');
+  }
+  return;
+}
+// Check if clicking a tower
+hideUpgradeMenu();
+for(const t of G.towers){
+  if(t.gx===gx&&t.gy===gy){
+    showUpgradeMenu(t,e.clientX,e.clientY);return;
+  }
+}
+});
+
+canvas.addEventListener('contextmenu',e=>{
+e.preventDefault();
+if(G.state!=='playing')return;
+const rect=canvas.getBoundingClientRect();
+const scaleX=CW/rect.width,scaleY=CH/rect.height;
+const mx=(e.clientX-rect.left)*scaleX,my=(e.clientY-rect.top)*scaleY;
+const gx=Math.floor(mx/CS),gy=Math.floor(my/CS);
+for(const t of G.towers){
+  if(t.gx===gx&&t.gy===gy){showUpgradeMenu(t,e.clientX,e.clientY);return}
+}
+hideUpgradeMenu();
+});
+
+document.addEventListener('keydown',e=>{
+if(e.key==='Escape'){G.selectedType=null;hideUpgradeMenu();
+  document.querySelectorAll('.tower-btn').forEach(b=>b.classList.remove('selected'));
+}
+});
+
+document.getElementById('wave-btn').addEventListener('click',()=>{
+if(G.state!=='playing')return;
+initAudio();
+if(!G.waveActive&&G.wave===0){G.betweenWaves=false;startWave();return}
+if(G.betweenWaves)skipToNextWave();
+});
+
+document.getElementById('mute-btn').addEventListener('click',()=>{
+soundOn=!soundOn;
+document.getElementById('mute-btn').textContent='Sound: '+(soundOn?'ON':'OFF');
+});
+
+// Click outside canvas to deselect
+document.addEventListener('click',e=>{
+if(!canvas.contains(e.target)&&!document.getElementById('upgrade-menu').contains(e.target)&&
+   !document.getElementById('sidebar').contains(e.target)){
+  hideUpgradeMenu();
+}
+});
+
+// ==================== GAME LOOP ====================
+function gameLoop(timestamp){
+if(!G.lastTime)G.lastTime=timestamp;
+const dt=Math.min(timestamp-G.lastTime,50);
+G.lastTime=timestamp;
+
+if(G.state==='playing'){
+  updateWave(dt);
+  updateTowers(dt);
+  updateEnemies(dt);
+  updateProjectiles(dt);
+  updateParticles(dt);
+  updateCoffeePickups(dt);
+  // Clean up dead enemies (but only outside active spawning)
+  G.enemies=G.enemies.filter(e=>e.alive);
+  G.projectiles=G.projectiles.filter(p=>p.alive);
+  // Check game over
+  if(G.castleHP<=0){G.castleHP=0;G.state='gameover';showEndScreen(false)}
+  render();
+  updateUI();
+}else if(G.state==='menu'){
+  render();
+}
+requestAnimationFrame(gameLoop);
+}
+
+// ==================== INIT ====================
+buildSidebar();
+showStartScreen();
+requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
